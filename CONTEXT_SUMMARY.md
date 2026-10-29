@@ -8,7 +8,7 @@ records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app (free Vercel domain retained)
-- Latest published code commit: `fa2bca7`.
+- Latest published code commit: `191f6bb` (`feat: replace Turnstile with Supabase rate limits`).
 - Logo is live at `/record-commons-mark.svg` and used in the header, footer, and
   browser icon.
 - The user applied
@@ -18,23 +18,30 @@ records appear publicly.
   settings, `ADMIN_PASSWORD`, and `SESSION_SECRET` as sensitive variables. Their
   values were not retrieved or printed. Turnstile variables are absent by user
   preference.
-- Production still runs the prior code until the no-Turnstile change is pushed.
-- Work in progress: remove Turnstile; add Supabase-backed atomic rate limiting
+- Vercel has started a production deployment for `191f6bb`; it was observed in
+  `BUILDING` state. Confirm readiness and check `/api/config` before claiming
+  the update is live.
+- The code removes Turnstile and adds Supabase-backed atomic rate limiting
   for upload signing (5 per 15 minutes, 10 per day), submissions (5 per hour),
   and moderator sign-in (5 per 15 minutes). Rate-limit subjects use HMAC hashes
   of Vercel-forwarded IP values; raw IPs are not stored. Enforcement fails
   closed if Supabase rate-limit RPCs are unavailable.
-- New migration pending: `supabase/migrations/20261029000000_add_request_rate_limits.sql`.
-  Production config will keep uploads disabled until this migration is applied.
+- The user applied `supabase/migrations/20261029000000_add_request_rate_limits.sql`.
+  Production config now reports `uploadsEnabled: true`; `/api/videos` returns
+  HTTP 200 and an empty array. The deployment for `191f6bb` is READY.
+- User reports Cloudinary returns “Upload preset not found.” Cloudinary env-var
+  names exist in Vercel Production, but values were not decrypted. Likely
+  configuration mismatch: exact preset name/cloud account/preset setup must be
+  checked in Cloudinary.
 
 ## Next steps
 
-1. Finish and verify the implementation with TypeScript, lint, tests, and build.
-2. Have the user apply the new rate-limit migration in the SQL Editor for
-   Supabase project `abhadrizpkreyxijkscv`; do not use the unrelated MCP database.
-3. Push the code, wait for Vercel production deployment, and verify the rate
-   limit readiness check, upload signing, submission, moderator review, and
-   public listing.
+1. Resolve the Cloudinary preset mismatch with the user; never decrypt or ask
+   them to post the API secret.
+2. Resume the requested simpler contributor-first redesign after the upload
+   issue is resolved or scoped.
+3. After UI changes, verify submission, moderation, and public listing end to
+   end.
 
 Keep server-only keys out of source control and chat. Anonymous uploads remain
 susceptible to distributed abuse; rate limits do not replace provider usage
