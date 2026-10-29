@@ -1,17 +1,16 @@
 # Record Commons
 
 Record Commons is a moderated public index for videos submitted without account
-registration. Unless the upload relay is configured, video bytes go directly
-from the visitor's browser to Cloudinary; submission metadata is stored in
-Supabase. New entries stay out of the public index until the archive moderator
-approves them.
+registration. Uploads remain disabled until the required relay is configured;
+then video bytes pass through the relay before reaching Cloudinary. Submission
+metadata is stored in Supabase. New entries stay out of the public index until
+the archive moderator approves them.
 
 ## What works in this starter
 
 - Public list of approved video records, with search.
 - Video submissions with title, context, optional source link, and topics.
-- Browser-to-Cloudinary uploads, optionally routed through the Cloudflare Worker
-  relay.
+- Video uploads routed through the required Cloudflare Worker relay.
 - Cloudinary-generated poster thumbnails and playback derivatives for archive
   entries.
 - Supabase-backed rate limits for upload authorization, submissions, and
@@ -36,12 +35,14 @@ view it. Contributors see this warning before uploading. Do not accept videos
 containing private or sensitive material. The site does not yet delete rejected
 assets from Cloudinary automatically; remove them from the provider dashboard.
 
-The optional Cloudflare Worker in `workers/upload-relay/worker.mjs` relays video
-chunks to Cloudinary. When `UPLOAD_RELAY_URL` is configured, Cloudinary receives
-the relay's IP instead of the contributor's. Cloudflare still receives the
-contributor's connection, and Vercel still receives requests for the site and
-upload authorization. This reduces one provider's view of the contributor; it
-does not provide Tor-style anonymity or protect against traffic correlation.
+The Cloudflare Worker in `workers/upload-relay/worker.mjs` relays video chunks to
+Cloudinary. The application disables uploads until `UPLOAD_RELAY_URL` is
+configured and never falls back to direct browser-to-Cloudinary uploads.
+Cloudinary receives the relay's IP instead of the contributor's. Cloudflare
+still receives the contributor's connection, and Vercel still receives requests
+for the site and upload authorization. Video files may also contain identifying
+metadata. This reduces one provider's view of the contributor; it does not
+provide Tor-style anonymity or protect against traffic correlation.
 
 The application does not establish that a video was censored, blocked, or
 removed by any particular party. Moderators should check context, rights, and
@@ -64,8 +65,8 @@ present. Copy `.env.example` to `.env.local` and fill in the values below.
    `CLOUDINARY_UPLOAD_PRESET`. Create a **signed** video upload preset in
    Cloudinary, restrict it to approved video formats, and set its maximum file
    size to the smaller of 100 MB or your account's supported maximum. The app
-   signs the preset and upload parameters on the server and sends the file
-   directly from the browser to Cloudinary when no upload relay is configured.
+   signs the preset and upload parameters on the server. Uploads remain disabled
+   until the required relay is configured.
 4. Set a unique `ADMIN_PASSWORD` and a cryptographically random
    `SESSION_SECRET` of at least 32 characters. The moderator password is not a
    contributor account; contributors never need to sign in.
@@ -73,12 +74,11 @@ present. Copy `.env.example` to `.env.local` and fill in the values below.
     and safety requests.
 6. Configure these environment variables in the hosting platform, then deploy.
 
-To route video bytes through the relay, deploy `workers/upload-relay/worker.mjs`
-as a Cloudflare Worker. Set its `CLOUDINARY_CLOUD_NAME` and `ALLOWED_ORIGIN`
-variables, with `ALLOWED_ORIGIN` set to the exact public site origin. Configure
-`UPLOAD_RELAY_URL` in Vercel as the Worker URL ending in `/upload`, then redeploy
-the site. The relay does not need the Cloudinary API secret. Until this is set,
-uploads go directly from the browser to Cloudinary.
+Deploy `workers/upload-relay/worker.mjs` as a Cloudflare Worker. Set its
+`CLOUDINARY_CLOUD_NAME` and `ALLOWED_ORIGIN` variables, with `ALLOWED_ORIGIN` set
+to the exact public site origin. Configure `UPLOAD_RELAY_URL` in Vercel as the
+Worker URL ending in `/upload`, then redeploy the site. The relay does not need
+the Cloudinary API secret. Uploads stay disabled until this setup is complete.
 
 The server enforces these per-address limits: five upload authorizations per
 15 minutes, ten per day, five completed-submission requests per hour, and five

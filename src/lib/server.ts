@@ -24,8 +24,11 @@ export function configuredUploadRelayUrl() {
 export async function publicConfig() {
   const contactEmail = env("NEXT_PUBLIC_CONTACT_EMAIL");
   const archiveEnabled = Boolean(env("NEXT_PUBLIC_SUPABASE_URL") && env("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
+  let uploadRelayEnabled = false;
+  try { uploadRelayEnabled = Boolean(configuredUploadRelayUrl()); } catch { /* Fail closed in the upload-sign route. */ }
   let uploadsEnabled = Boolean(
     archiveEnabled &&
+    uploadRelayEnabled &&
     env("SUPABASE_SERVICE_ROLE_KEY") && env("CLOUDINARY_CLOUD_NAME") &&
     env("CLOUDINARY_API_KEY") && env("CLOUDINARY_API_SECRET") && env("CLOUDINARY_UPLOAD_PRESET") &&
     env("ADMIN_PASSWORD") && env("SESSION_SECRET"),
@@ -40,8 +43,6 @@ export async function publicConfig() {
       uploadsEnabled = false;
     }
   }
-  let uploadRelayEnabled = false;
-  try { uploadRelayEnabled = Boolean(configuredUploadRelayUrl()); } catch { /* Fail closed in the upload-sign route. */ }
   return { archiveEnabled, uploadsEnabled, uploadRelayEnabled, contactEmail: contactEmail || null };
 }
 

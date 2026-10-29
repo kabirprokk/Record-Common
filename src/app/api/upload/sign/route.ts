@@ -18,12 +18,10 @@ export async function POST(request: Request) {
         { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
       );
     }
-    const { cloudName, apiKey, apiSecret, uploadPreset } = cloudinaryConfig();
+    const { apiKey, apiSecret, uploadPreset } = cloudinaryConfig();
     const relayUrl = configuredUploadRelayUrl();
-    let uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
-    if (relayUrl) {
-      uploadUrl = relayUrl;
-    }
+    if (!relayUrl) throw new Error("Upload relay is required.");
+    const uploadUrl = relayUrl;
     const timestamp = Math.floor(Date.now() / 1000);
     // Keep the folder path inside public_id only. Sending both `folder` and a
     // path-prefixed public_id makes Cloudinary prepend the path again in legacy

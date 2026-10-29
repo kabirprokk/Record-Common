@@ -7,22 +7,19 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app
-- Implementation commit: `23a445b` (`feat: redesign archive and add privacy relay`).
-- Latest pushed commit: `d6df7dd` (`docs: record privacy redesign deployment status`).
+- Latest pushed commit before current privacy hardening: `ae406e4` (`fix: keep site footer at viewport bottom`).
 - Moderator `/review` access is password/session protected and no longer linked
   from the public footer.
 - User priorities: protect contributor identities as much as practical, improve
   archive availability, keep the ordinary website, and never remove existing
   posted videos.
-- Commit `23a445b` contains the complete homepage and
-  responsive UI redesign; Cloudinary-generated video poster thumbnails;
-  `q_auto` derived playback URLs without database/media mutation; restrictive
-  security headers; clearer upload privacy disclosure; optional chunked upload
-  relay source in `workers/upload-relay/worker.mjs`; and relay URL configuration.
-- Upload relay is not deployed. Without Vercel `UPLOAD_RELAY_URL`, uploads still
-  go directly from visitor browsers to Cloudinary. Once configured, Cloudinary
-  sees the Worker egress IP, but Cloudflare and Vercel can still see visitor
-  network metadata. No Tor-style anonymity is claimed.
+- The application now fails closed for new uploads until `UPLOAD_RELAY_URL` is
+  configured. The upload-sign route cannot issue direct-to-Cloudinary URLs, and
+  public config reports uploads disabled without the relay.
+- The relay source is `workers/upload-relay/worker.mjs`; it is not deployed yet.
+  When configured, Cloudinary sees the Worker egress IP, but Cloudflare and
+  Vercel can still see visitor network metadata. Uploaded files may also contain
+  identifying metadata. No Tor-style anonymity is claimed.
 - Independent media/database backups are not configured. Cloudflare account,
   R2 bucket, deployment access, and restore checks are not available in this
   workspace.
@@ -30,8 +27,8 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 ## Verification completed locally
 
-- `npx tsc --noEmit`, `npm run lint`, `npm test` (13 tests),
-  `node --check workers/upload-relay/worker.mjs`, and `npm run build` passed.
+- Previous verification and deployments remain historical; rerun checks after
+  the current uncommitted privacy-hardening changes.
 - SIGHT inspected the redesigned desktop and mobile layouts.
 - Local production response returned HTTP 200 with CSP, `X-Content-Type-Options`,
   `X-Frame-Options`, `Referrer-Policy: no-referrer`, and `Permissions-Policy`.
@@ -42,9 +39,9 @@ Supabase stores submission metadata, and only approved records appear publicly.
   `d6df7dd` are both READY. Production homepage now serves the redesign, and
   `/review` returns HTTP 200. Production response has the configured CSP,
   `no-referrer`, `X-Content-Type-Options`, and other security headers.
-- Production `/api/config` returns archive/uploads enabled but
-  `uploadRelayEnabled: false`. Direct browser-to-Cloudinary uploads remain
-  active until Cloudflare Worker deployment and Vercel `UPLOAD_RELAY_URL` setup.
+- Production `/api/config` previously returned uploads enabled with
+  `uploadRelayEnabled: false`. After this change deploys, uploads will remain
+  disabled until the Worker and Vercel `UPLOAD_RELAY_URL` are configured.
 - Production approved video poster URL returned HTTP 200 `image/jpeg`; derived
   playback URL returned HTTP 200 `video/mp4`. SIGHT confirmed the live archive
   card and thumbnail-bearing video element render.

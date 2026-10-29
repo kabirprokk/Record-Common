@@ -31,6 +31,15 @@ test("review session probe reveals only the current request's authentication sta
   assert.match(route, /Cache-Control.*no-store/);
 });
 
+test("uploads fail closed until the privacy relay is configured", async () => {
+  const uploadRoute = await readFile(new URL("src/app/api/upload/sign/route.ts", root), "utf8");
+  const server = await readFile(new URL("src/lib/server.ts", root), "utf8");
+
+  assert.match(uploadRoute, /if\s*\(!relayUrl\)\s*throw/);
+  assert.doesNotMatch(uploadRoute, /https:\/\/api\.cloudinary\.com\/v1_1/);
+  assert.match(server, /uploadsEnabled\s*=\s*Boolean\([\s\S]*uploadRelayEnabled/);
+});
+
 test("moderator password remains server-side and API access stays session-gated", async () => {
   const login = await readFile(new URL("src/app/api/admin/login/route.ts", root), "utf8");
   const submissions = await readFile(new URL("src/app/api/admin/submissions/route.ts", root), "utf8");
@@ -69,6 +78,7 @@ test("privacy language does not promise anonymity and explains provider visibili
   assert.doesNotMatch(app, /Your submission is anonymous/);
   assert.match(app, /network provider/i);
   assert.match(app, /Cloudinary/i);
+  assert.match(app, /identifying metadata/i);
 });
 
 test("site config applies browser security headers and a restrictive policy", async () => {
