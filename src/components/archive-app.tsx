@@ -209,8 +209,14 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
 
   return <Dialog onClose={onClose} eyebrow="02 / Contribute" title="Add to the record">
     {!config.uploadsEnabled ? <div className="notice warning">Submissions are paused until the database, video host, abuse protection, and required upload relay are configured.</div> : null}
-    <p className="help-text privacy-note" style={{ fontSize: 11, margin: "-8px 0 17px" }}>{config.uploadRelayEnabled ? "We do not ask for your name or email, and replace your original filename with a generic one. Cloudinary strips embedded global metadata, including GPS tags, during upload. This does not remove identifying details visible or audible in the video, or every stream-level field. Cloudinary receives the relay's IP address, while the relay operator and this site's host may still see your connection IP. This is not guaranteed anonymity." : "Submissions are paused until the upload relay is configured. We do not ask for your name or email, and replace your original filename with a generic one. When enabled, Cloudinary will strip embedded global metadata, including GPS tags. This cannot remove identifying details visible or audible in the video, and the site host and your network provider may still see that you visit this site. This is not guaranteed anonymity."}</p>
-    <p className="help-text privacy-note">If approved, the video, title, description, topics, and optional source link will be public. Do not include identifying details unless you intend to publish them.</p>
+    <section className="privacy-brief" aria-label="Privacy before contributing">
+      <div className="privacy-brief-heading"><span className="eyebrow">PRIVACY / BEFORE YOU SEND</span><span className="privacy-brief-mark" aria-hidden="true">!</span></div>
+      <div className="privacy-brief-grid">
+        <div><h3>Less metadata</h3><p>The uploader replaces your filename and strips embedded global metadata from new videos. It cannot remove clues visible or audible in the footage.</p></div>
+        <div><h3>Not untraceable</h3><p>The site host and network providers may see your visit. When uploads are enabled, Cloudinary receives the relay address, but the relay operator may see your connection address.</p></div>
+      </div>
+      <p className="privacy-brief-public">If approved, your video, title, description, topics, and optional source link become public.</p>
+    </section>
     <form className="form-stack" onSubmit={submit}>
       <label><span className="field-label">Video file *</span><span className="file-field"><input type="file" accept="video/mp4,video/webm,video/quicktime" required disabled={busy || !config.uploadsEnabled} onChange={chooseFile} /><span className="help-text">MP4, WebM, or MOV · up to 100 MB in this uploader</span></span></label>
       <label><span className="field-label">Title *</span><input className="field" name="title" maxLength={120} required placeholder="A short, descriptive title" disabled={busy || !config.uploadsEnabled} /></label>

@@ -15,7 +15,9 @@ test("session encryption hides payload and round-trips with the secret", () => {
 
 test("session decryption rejects tampering and a different secret", () => {
   const token = encryptSession("private-session-data", secret);
-  const tampered = `${token.slice(0, -1)}${token.endsWith("A") ? "B" : "A"}`;
+  const [version, iv, tag, ciphertext] = token.split(".");
+  const changedCiphertext = `${ciphertext[0] === "A" ? "B" : "A"}${ciphertext.slice(1)}`;
+  const tampered = [version, iv, tag, changedCiphertext].join(".");
 
   assert.equal(decryptSession(tampered, secret), null);
   assert.equal(decryptSession(token, "a-different-secret-with-sufficient-length"), null);

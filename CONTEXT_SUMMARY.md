@@ -7,7 +7,7 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app
-- Latest pushed commit before current privacy hardening: `818784a` (`feat: add contributor privacy review checklist`).
+- Latest pushed commit before current UI/privacy hardening: `ae0231e` (`feat: encrypt moderator session cookies`).
 - Moderator `/review` access is password/session protected and no longer linked
   from the public footer.
 - User priorities: protect contributor identities as much as practical, improve
@@ -34,6 +34,9 @@ Supabase stores submission metadata, and only approved records appear publicly.
   AES-256-GCM and a key derived from the high-entropy `SESSION_SECRET`. The
   cookie is opaque and authenticated; deploying this invalidates existing
   moderator sessions. This does not encrypt database rows or video files.
+- The contribution dialog now presents a compact privacy summary that separates
+  metadata reduction from network traceability limits and public disclosure.
+  Site-wide typography uses one system sans-serif stack for a more minimal UI.
 - The relay source is `workers/upload-relay/worker.mjs`; it is not deployed yet.
   When configured, Cloudinary sees the Worker egress IP, but Cloudflare and
   Vercel can still see visitor network metadata. Uploaded files may also contain
@@ -45,9 +48,10 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 ## Verification completed locally
 
-- `npx tsc --noEmit`, `npm run lint`, `npm test` (24 tests), and `npm run build`
-  passed after moderator-cookie encryption; `node --check
-  src/lib/session-crypto.mjs` also passed.
+- `npx tsc --noEmit`, `npm run lint`, `npm test` (25 tests), and `npm run build`
+  passed after the latest dialog/font changes. SIGHT confirmed system-ui
+  typography at desktop and mobile widths; the contribution dialog itself was
+  not opened in the visual browser check.
 - SIGHT inspected the redesigned desktop and mobile layouts.
 - Local production response returned HTTP 200 with CSP, `X-Content-Type-Options`,
   `X-Frame-Options`, `Referrer-Policy: no-referrer`, and `Permissions-Policy`.

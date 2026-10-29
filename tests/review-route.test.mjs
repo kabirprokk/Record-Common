@@ -96,14 +96,18 @@ test("Cloudinary poster generation supports transformed legacy URLs and rejects 
 
 test("privacy language does not promise anonymity and explains provider visibility", async () => {
   const app = await readFile(new URL("src/components/archive-app.tsx", root), "utf8");
+  const styles = await readFile(new URL("src/app/globals.css", root), "utf8");
 
   assert.doesNotMatch(app, /Your submission is anonymous/);
-  assert.match(app, /network provider/i);
-  assert.match(app, /Cloudinary/i);
+  assert.match(app, /Not untraceable/);
+  assert.match(app, /network providers may see your visit/i);
+  assert.match(app, /Cloudinary receives the relay address/i);
   assert.match(app, /strips embedded global metadata/i);
-  assert.match(app, /If approved, the video, title, description, topics, and optional source link will be public/i);
+  assert.match(app, /If approved, your video, title, description, topics, and optional source link become public/i);
   assert.match(app, /I understand that the video and information above will be public/i);
   assert.match(app, /reviewed the video for faces, voices, screens, documents, location clues/i);
+  assert.match(styles, /\.privacy-brief-grid\s*\{[^}]*grid-template-columns:\s*1fr 1fr/s);
+  assert.match(styles, /\.privacy-brief-grid\s*\{[^}]*grid-template-columns:\s*1fr/s);
 });
 
 test("site config applies browser security headers and a restrictive policy", async () => {
@@ -142,4 +146,11 @@ test("homepage focuses on the search bar and video index without promotional her
   assert.doesNotMatch(app, /Contact details are not configured/);
   assert.match(styles, /\.site-shell\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s);
   assert.match(styles, /\.site-shell\s*>\s*main\s*\{[^}]*flex:\s*1/s);
+});
+
+test("typography uses one restrained system font family across the site", async () => {
+  const styles = await readFile(new URL("src/app/globals.css", root), "utf8");
+
+  assert.match(styles, /--sans:\s*system-ui/);
+  assert.doesNotMatch(styles, /--serif|Georgia|Times New Roman/);
 });
