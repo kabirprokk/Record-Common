@@ -7,7 +7,7 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app
-- Latest pushed commit before current privacy hardening: `c247e0e` (`fix: hide contributor filenames during upload`).
+- Latest pushed commit before current privacy hardening: `6e42daa` (`fix: reduce public submission timing precision`).
 - Moderator `/review` access is password/session protected and no longer linked
   from the public footer.
 - User priorities: protect contributor identities as much as practical, improve
@@ -25,6 +25,8 @@ Supabase stores submission metadata, and only approved records appear publicly.
 - The public videos API uses an explicit response allowlist and exposes only the
   UTC archive year, not the exact submission timestamp, to reduce timing-based
   correlation. Moderator review retains the exact timestamp privately.
+- Submission UI explicitly lists the fields that become public after approval
+  and requires contributors to acknowledge that before submitting.
 - The relay source is `workers/upload-relay/worker.mjs`; it is not deployed yet.
   When configured, Cloudinary sees the Worker egress IP, but Cloudflare and
   Vercel can still see visitor network metadata. Uploaded files may also contain
@@ -37,7 +39,7 @@ Supabase stores submission metadata, and only approved records appear publicly.
 ## Verification completed locally
 
 - `npx tsc --noEmit`, `npm run lint`, `npm test` (21 tests), and `npm run build`
-  passed after timestamp minimization.
+  passed after the public-field disclosure change.
 - SIGHT inspected the redesigned desktop and mobile layouts.
 - Local production response returned HTTP 200 with CSP, `X-Content-Type-Options`,
   `X-Frame-Options`, `Referrer-Policy: no-referrer`, and `Permissions-Policy`.

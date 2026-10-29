@@ -131,6 +131,8 @@ under their own privacy policies. Rate-limit identifiers are HMAC-hashed with
 `SESSION_SECRET`; raw IP addresses are not stored in the rate-limit table.
 The public archive API returns only the year an entry was added, not its exact
 submission timestamp, to reduce timing-based correlation.
+The submission form also tells contributors which fields become public after
+approval and requires them to acknowledge that before submitting.
 
 Independent media and database backups are not configured by this repository.
 Cloudinary and Supabase remain separate primary providers, but provider outages
