@@ -13,17 +13,16 @@ type VideoRecord = {
   created_at: string;
 };
 
-type PendingRecord = VideoRecord & { status: string; public_id: string };
 type PublicConfig = { archiveEnabled: boolean; uploadsEnabled: boolean; uploadRelayEnabled: boolean; contactEmail: string | null };
-type Panel = "submit" | "admin" | null;
+type Panel = "submit" | null;
 
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export default function ArchiveApp({ initialPanel = null }: { initialPanel?: Panel }) {
+export default function ArchiveApp() {
   const [videos, setVideos] = useState<VideoRecord[]>([]);
-  const [panel, setPanel] = useState<Panel>(initialPanel);
+  const [panel, setPanel] = useState<Panel>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -75,47 +74,20 @@ export default function ArchiveApp({ initialPanel = null }: { initialPanel?: Pan
           <span className="wordmark-mark" aria-hidden="true" /> RECORD COMMONS
         </a>
         <nav className="nav-items" aria-label="Main navigation">
-          <a className="nav-link" href="#archive">The archive</a>
           <button className="nav-link nav-submit" onClick={() => setPanel("submit")}>Contribute +</button>
         </nav>
       </header>
 
       <main id="top">
-        <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-copy-block">
-            <div className="hero-kicker"><span className="live-dot" /> A community-built record</div>
-            <h1 id="hero-title">Keep the record.<br /><em>Share the context.</em></h1>
-            <p className="hero-copy">A public index for videos that are difficult to access. Community submissions are reviewed before they become part of the archive.</p>
-            <div className="hero-actions">
-              <button className="hero-cta" onClick={() => setPanel("submit")}>Contribute a video <span aria-hidden="true">↗</span></button>
-              <a className="hero-secondary" href="#about">How this archive works <span aria-hidden="true">↓</span></a>
-            </div>
-          </div>
-          <aside className="hero-aside" aria-label="Archive principles">
-            <div className="aside-index">FIELD NOTE / 001</div>
-            <div className="orbit-mark" aria-hidden="true"><span>RC</span></div>
-            <p>Independent records<br />are stronger together.</p>
-            <div className="aside-rule" />
-            <span className="aside-caption">Community maintained · Human reviewed</span>
-          </aside>
-        </section>
-
-        <section className="principles" id="about" aria-label="How the archive works">
-          <div><span className="principle-num">01</span><strong>Contribute</strong><p>Add a video and useful context.</p></div>
-          <div><span className="principle-num">02</span><strong>Review</strong><p>Submissions are checked before listing.</p></div>
-          <div><span className="principle-num">03</span><strong>Preserve</strong><p>Approved records stay browsable here.</p></div>
-          <p className="principles-note">A listing documents a community submission; it does not establish why a video became difficult to access.</p>
-        </section>
-
         <section className="section-wrap" id="archive" aria-labelledby="archive-title">
           <div className="section-heading">
-            <div><div className="eyebrow">THE PUBLIC INDEX <span>—</span> 01</div><h2 id="archive-title">Recently reviewed</h2></div>
+            <div><div className="eyebrow">RECORD COMMONS</div><h1 id="archive-title">Video index</h1></div>
             <div className="feed-meta"><span className="feed-count">{videos.length.toLocaleString()}</span><span>{videos.length === 1 ? "record" : "records"} in the index</span></div>
           </div>
           <div className="feed-tools">
             <label className="sr-only" htmlFor="archive-search">Search the archive</label>
-            <input id="archive-search" className="search-box" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search titles, notes, topics…" />
-            <span className="sort-label">Newest first&nbsp; ↓</span>
+            <span className="search-icon" aria-hidden="true">⌕</span>
+            <input id="archive-search" type="search" className="search-box" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the index…" />
           </div>
           <div className="video-grid" style={{ marginTop: 18 }}>
             {loading && <div className="empty-state"><h3>Opening the archive…</h3><p>Loading reviewed submissions.</p></div>}
@@ -133,11 +105,10 @@ export default function ArchiveApp({ initialPanel = null }: { initialPanel?: Pan
 
       <footer className="site-footer">
         <span><span className="footer-mark">Record Commons</span> · A community index, not a source of legal advice.</span>
-        <div>{config.contactEmail ? <>Report a concern: <a href={`mailto:${config.contactEmail}`}>contact the archive team</a></> : "Contact details are not configured."}</div>
+        {config.contactEmail && <div>Report a concern: <a href={`mailto:${config.contactEmail}`}>contact the archive team</a></div>}
       </footer>
 
       {panel === "submit" && <SubmissionDialog config={config} onClose={() => setPanel(null)} onSubmitted={() => { setPanel(null); void refresh(); }} />}
-      {panel === "admin" && <AdminDialog onClose={() => setPanel(null)} onChanged={() => void refresh()} />}
     </div>
   );
 }
@@ -252,71 +223,6 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
       {message && <div className={`notice${error ? " error" : ""}`} role="status">{message}</div>}
       <button className="primary-button" type="submit" disabled={busy || !config.uploadsEnabled || !file}>{busy ? "UPLOADING & SENDING FOR REVIEW…" : "SUBMIT FOR REVIEW ↗"}</button>
     </form>
-  </Dialog>;
-}
-
-function AdminDialog({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
-  const [password, setPassword] = useState("");
-  const [items, setItems] = useState<PendingRecord[]>([]);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  async function login(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setMessage("");
-    try {
-      const response = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Could not sign in.");
-      setLoggedIn(true); setError(false); setPassword(""); await loadPending();
-    } catch (caught) { setError(true); setMessage(caught instanceof Error ? caught.message : "Could not sign in."); }
-    finally { setBusy(false); }
-  }
-
-  async function loadPending() {
-    const response = await fetch("/api/admin/submissions", { cache: "no-store" });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error ?? "Could not load submissions.");
-    setItems(result as PendingRecord[]);
-  }
-
-  async function review(id: string, status: "approved" | "rejected") {
-    setBusy(true); setMessage("");
-    try {
-      const response = await fetch("/api/admin/submissions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Could not update the submission.");
-      setItems((current) => current.filter((item) => item.id !== id));
-      setMessage(`Submission ${status}.`); setError(false); onChanged();
-    } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Could not update the submission."); setError(true); }
-    finally { setBusy(false); }
-  }
-
-  async function logout() {
-    await fetch("/api/admin/submissions", { method: "DELETE" });
-    setLoggedIn(false);
-    setItems([]);
-  }
-
-  return <Dialog onClose={onClose} eyebrow="Moderator access" title="Review desk">
-    {!loggedIn ? <form className="form-stack" onSubmit={login}>
-      <p className="help-text" style={{ fontSize: 11, margin: "-8px 0 8px" }}>This area is for the archive owner. Contributor submissions do not require an account.</p>
-      <label><span className="field-label">Moderator password</span><input className="field" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
-      {message && <div className={`notice${error ? " error" : ""}`} role="alert">{message}</div>}
-      <button className="primary-button" disabled={busy}>{busy ? "CHECKING…" : "OPEN REVIEW DESK"}</button>
-    </form> : <div className="form-stack">
-      <p className="help-text" style={{ fontSize: 11, margin: "-8px 0 8px" }}>New submissions stay out of the public archive until you approve them.</p>
-      <button className="secondary-button" onClick={() => void logout()} style={{ justifySelf: "end" }}>Lock review desk</button>
-      {message && <div className={`notice${error ? " error" : ""}`} role="status">{message}</div>}
-      {items.length === 0 ? <div className="empty-state"><h3>Nothing waiting</h3><p>There are no pending submissions to review.</p></div> : <div className="review-list">{items.map((item) => <article className="review-item" key={item.id}>
-        <div className="card-topline"><span>PENDING · {item.id.slice(0, 8)}</span><time>{dateLabel(item.created_at)}</time></div>
-        <h3>{item.title}</h3><p className="help-text">{item.description}</p>
-        <video controls preload="metadata" playsInline src={item.media_url} style={{ width: "100%", maxHeight: 250, background: "#15231b" }} aria-label={`Review video: ${item.title}`} />
-        {item.source_url && <a href={item.source_url} target="_blank" rel="noreferrer" className="help-text">Open source ↗</a>}
-        <div className="review-actions"><button className="secondary-button approve" disabled={busy} onClick={() => void review(item.id, "approved")}>Approve</button><button className="secondary-button reject" disabled={busy} onClick={() => void review(item.id, "rejected")}>Reject</button></div>
-      </article>)}</div>}
-    </div>}
   </Dialog>;
 }
 

@@ -10,8 +10,25 @@ test("review desk has a direct route but no public footer link", async () => {
   const reviewPage = await readFile(new URL("src/app/review/page.tsx", root), "utf8");
 
   assert.doesNotMatch(app, /onClick=\{\(\) => setPanel\("admin"\)\}>Review desk/);
-  assert.match(app, /initialPanel\?: Panel/);
-  assert.match(reviewPage, /<ArchiveApp initialPanel="admin"\s*\/>/);
+  assert.doesNotMatch(app, /initialPanel/);
+  assert.match(reviewPage, /<ReviewDesk\s*\/>/);
+});
+
+test("review desk is a full-page moderator workspace, not a modal overlay", async () => {
+  const desk = await readFile(new URL("src/components/review-desk.tsx", root), "utf8");
+
+  assert.match(desk, /className="review-page"/);
+  assert.match(desk, /<h1[^>]*>Review desk<\/h1>/);
+  assert.doesNotMatch(desk, /role="dialog"|dialog-backdrop/);
+  assert.match(desk, /Lock review desk/);
+});
+
+test("review session probe reveals only the current request's authentication state", async () => {
+  const route = await readFile(new URL("src/app/api/admin/session/route.ts", root), "utf8");
+
+  assert.match(route, /isAdminSessionValid\(\)/);
+  assert.match(route, /authenticated: await isAdminSessionValid\(\)/);
+  assert.match(route, /Cache-Control.*no-store/);
 });
 
 test("moderator password remains server-side and API access stays session-gated", async () => {
@@ -61,4 +78,13 @@ test("public media URLs use Cloudinary derived delivery without rewriting stored
   assert.match(api, /row\.media_url\.replace\("\/video\/upload\/", "\/video\/upload\/q_auto\/"\)/);
   assert.match(api, /status=eq\.approved/);
   assert.doesNotMatch(api, /method:\s*"PATCH"|method:\s*"DELETE"/);
+});
+
+test("homepage focuses on the search bar and video index without promotional hero sections", async () => {
+  const app = await readFile(new URL("src/components/archive-app.tsx", root), "utf8");
+
+  assert.match(app, /id="archive-title">Video index/);
+  assert.match(app, /type="search"/);
+  assert.doesNotMatch(app, /className="hero"|className="principles"/);
+  assert.doesNotMatch(app, /Contact details are not configured/);
 });

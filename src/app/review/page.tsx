@@ -1,5 +1,5 @@
-import ArchiveApp from "@/components/archive-app";
+import ReviewDesk from "@/components/review-desk";
 
 export default function ReviewPage() {
-  return <ArchiveApp initialPanel="admin" />;
+  return <ReviewDesk />;
 }
