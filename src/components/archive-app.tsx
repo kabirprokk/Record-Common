@@ -218,6 +218,7 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
       <label><span className="field-label">Original public link</span><input className="field" name="sourceUrl" type="url" maxLength={500} placeholder="https://…" disabled={busy || !config.uploadsEnabled} /></label>
       <label><span className="field-label">Topics</span><input className="field" name="tags" maxLength={160} placeholder="election, public record, region (comma-separated)" disabled={busy || !config.uploadsEnabled} /></label>
       <label className="checkbox-row"><input type="checkbox" required disabled={busy || !config.uploadsEnabled} /><span>I have the right to submit this video. I understand that the video and information above will be public if approved.</span></label>
+      <label className="checkbox-row"><input type="checkbox" required disabled={busy || !config.uploadsEnabled} /><span>I reviewed the video for faces, voices, screens, documents, location clues, and other details that could identify someone, and intend to make any remaining details public.</span></label>
       <label className="sr-only" aria-hidden="true">Leave blank<input tabIndex={-1} autoComplete="off" name="website" /></label>
       {busy && <div className="progress-track" aria-label={`Upload ${progress}% complete`}><div className="progress-fill" style={{ width: `${progress}%` }} /></div>}
       {message && <div className={`notice${error ? " error" : ""}`} role="status">{message}</div>}

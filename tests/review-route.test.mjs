@@ -100,6 +100,7 @@ test("privacy language does not promise anonymity and explains provider visibili
   assert.match(app, /strips embedded global metadata/i);
   assert.match(app, /If approved, the video, title, description, topics, and optional source link will be public/i);
   assert.match(app, /I understand that the video and information above will be public/i);
+  assert.match(app, /reviewed the video for faces, voices, screens, documents, location clues/i);
 });
 
 test("site config applies browser security headers and a restrictive policy", async () => {

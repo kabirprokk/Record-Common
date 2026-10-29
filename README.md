@@ -132,7 +132,10 @@ under their own privacy policies. Rate-limit identifiers are HMAC-hashed with
 The public archive API returns only the year an entry was added, not its exact
 submission timestamp, to reduce timing-based correlation.
 The submission form also tells contributors which fields become public after
-approval and requires them to acknowledge that before submitting.
+approval and requires them to acknowledge that before submitting. It also asks
+contributors to check for identifying details in the image and audio, such as
+faces, voices, screens, documents, and location clues. This is a reminder, not
+automated detection or a guarantee that a video is safe to publish.
 
 Independent media and database backups are not configured by this repository.
 Cloudinary and Supabase remain separate primary providers, but provider outages
