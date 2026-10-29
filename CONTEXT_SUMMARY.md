@@ -7,7 +7,8 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app
-- Latest pushed code commit: `23a445b` (`feat: redesign archive and add privacy relay`).
+- Implementation commit: `23a445b` (`feat: redesign archive and add privacy relay`).
+- Latest pushed commit: `d6df7dd` (`docs: record privacy redesign deployment status`).
 - Moderator `/review` access is password/session protected and no longer linked
   from the public footer.
 - User priorities: protect contributor identities as much as practical, improve
@@ -37,22 +38,25 @@ Supabase stores submission metadata, and only approved records appear publicly.
 - Cloudinary demo requests returned HTTP 200 for both a generated JPG poster and
   a transformed MP4. This verifies Cloudinary URL behavior, not a live archive
   video.
-- Vercel deployment for `23a445b` was `BUILDING` at last check. The current
-  production home had not yet updated. `/review` returned HTTP 200. Production
-  config has uploads enabled; the previous deployment does not expose relay
-  status, so direct Cloudinary upload is still active until the new code deploys
-  and `UPLOAD_RELAY_URL` is set.
+- Vercel deployment for implementation commit `23a445b` and docs commit
+  `d6df7dd` are both READY. Production homepage now serves the redesign, and
+  `/review` returns HTTP 200. Production response has the configured CSP,
+  `no-referrer`, `X-Content-Type-Options`, and other security headers.
+- Production `/api/config` returns archive/uploads enabled but
+  `uploadRelayEnabled: false`. Direct browser-to-Cloudinary uploads remain
+  active until Cloudflare Worker deployment and Vercel `UPLOAD_RELAY_URL` setup.
+- Production approved video poster URL returned HTTP 200 `image/jpeg`; derived
+  playback URL returned HTTP 200 `video/mp4`. SIGHT confirmed the live archive
+  card and thumbnail-bearing video element render.
 
 ## Next steps
 
-1. Confirm Vercel deployment `23a445b` is ready, then verify the new UI,
-   thumbnails, and security headers in production.
-2. Deploy `workers/upload-relay/worker.mjs` with `CLOUDINARY_CLOUD_NAME` and
+1. Deploy `workers/upload-relay/worker.mjs` with `CLOUDINARY_CLOUD_NAME` and
    `ALLOWED_ORIGIN=https://reccommons.vercel.app`; set Vercel's
    `UPLOAD_RELAY_URL` to the Worker `/upload` URL and redeploy.
-3. Configure independent R2/database backups and test a restore before claiming
+2. Configure independent R2/database backups and test a restore before claiming
    high availability.
-4. Verify production headers, poster rendering, a small upload, a multi-chunk
+3. Verify a small upload and a multi-chunk
    upload, review login, and archive playback after deployment.
 
 Do not expose secrets in source or chat. The relay does not need the Cloudinary
