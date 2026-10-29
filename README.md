@@ -1,17 +1,19 @@
 # Record Commons
 
-Record Commons is a moderated public index for videos submitted by anonymous
-contributors. The site uploads video directly from the visitor's browser to
-Cloudinary and stores metadata in Supabase. New entries stay out of the public
-index until the archive moderator approves them.
+Record Commons is a moderated public index for videos submitted without account
+registration. Unless the upload relay is configured, video bytes go directly
+from the visitor's browser to Cloudinary; submission metadata is stored in
+Supabase. New entries stay out of the public index until the archive moderator
+approves them.
 
 ## What works in this starter
 
 - Public list of approved video records, with search.
-- Anonymous video submissions with title, context, optional source link, and
-  topics.
-- Browser-to-Cloudinary upload, so video bytes do not pass through the app
-  server.
+- Video submissions with title, context, optional source link, and topics.
+- Browser-to-Cloudinary uploads, optionally routed through the Cloudflare Worker
+  relay.
+- Cloudinary-generated poster thumbnails and playback derivatives for archive
+  entries.
 - Supabase-backed rate limits for upload authorization, submissions, and
   moderator sign-in.
 - A moderator password and signed, HTTP-only session cookie.
@@ -33,6 +35,13 @@ archive, but it is not private: anyone who obtains its direct URL may be able to
 view it. Contributors see this warning before uploading. Do not accept videos
 containing private or sensitive material. The site does not yet delete rejected
 assets from Cloudinary automatically; remove them from the provider dashboard.
+
+The optional Cloudflare Worker in `workers/upload-relay/worker.mjs` relays video
+chunks to Cloudinary. When `UPLOAD_RELAY_URL` is configured, Cloudinary receives
+the relay's IP instead of the contributor's. Cloudflare still receives the
+contributor's connection, and Vercel still receives requests for the site and
+upload authorization. This reduces one provider's view of the contributor; it
+does not provide Tor-style anonymity or protect against traffic correlation.
 
 The application does not establish that a video was censored, blocked, or
 removed by any particular party. Moderators should check context, rights, and
@@ -56,13 +65,20 @@ present. Copy `.env.example` to `.env.local` and fill in the values below.
    Cloudinary, restrict it to approved video formats, and set its maximum file
    size to the smaller of 100 MB or your account's supported maximum. The app
    signs the preset and upload parameters on the server and sends the file
-   directly from the browser to Cloudinary.
+   directly from the browser to Cloudinary when no upload relay is configured.
 4. Set a unique `ADMIN_PASSWORD` and a cryptographically random
    `SESSION_SECRET` of at least 32 characters. The moderator password is not a
    contributor account; contributors never need to sign in.
 5. Set `NEXT_PUBLIC_CONTACT_EMAIL` to a monitored address for rights, removal,
     and safety requests.
 6. Configure these environment variables in the hosting platform, then deploy.
+
+To route video bytes through the relay, deploy `workers/upload-relay/worker.mjs`
+as a Cloudflare Worker. Set its `CLOUDINARY_CLOUD_NAME` and `ALLOWED_ORIGIN`
+variables, with `ALLOWED_ORIGIN` set to the exact public site origin. Configure
+`UPLOAD_RELAY_URL` in Vercel as the Worker URL ending in `/upload`, then redeploy
+the site. The relay does not need the Cloudinary API secret. Until this is set,
+uploads go directly from the browser to Cloudinary.
 
 The server enforces these per-address limits: five upload authorizations per
 15 minutes, ten per day, five completed-submission requests per hour, and five
@@ -90,7 +106,8 @@ npm run build
 
 ## Review submissions
 
-Open the **Review desk** link in the page footer and enter `ADMIN_PASSWORD`.
+Open `https://your-site.example/review` and enter `ADMIN_PASSWORD`. The review
+route is intentionally not linked from the public page.
 The signed moderator cookie is HTTP-only, same-site, and expires after eight
 hours. Pending records can be played in the review desk and approved or
 rejected. Only approved records appear in the public index. Rejected uploads
@@ -102,6 +119,13 @@ The archive does not ask contributors for names, email addresses, or accounts.
 Cloudinary and the application host may process network and upload metadata
 under their own privacy policies. Rate-limit identifiers are HMAC-hashed with
 `SESSION_SECRET`; raw IP addresses are not stored in the rate-limit table.
+
+Independent media and database backups are not configured by this repository.
+Cloudinary and Supabase remain separate primary providers, but provider outages
+or account loss could still make records unavailable. Configure an independent
+backup target and test restoration before treating the archive as highly
+available. Public playback URLs use generated Cloudinary derivatives; this does
+not overwrite or delete the stored original assets or database records.
 
 Anonymous uploads can still be abused, including by attackers using many
 different network addresses. Supabase-backed limits reduce repeated requests

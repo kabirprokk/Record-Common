@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { cloudinaryPoster } from "@/lib/media-url.mjs";
 
 type VideoRecord = {
   id: string;
@@ -13,7 +14,7 @@ type VideoRecord = {
 };
 
 type PendingRecord = VideoRecord & { status: string; public_id: string };
-type PublicConfig = { archiveEnabled: boolean; uploadsEnabled: boolean; contactEmail: string | null };
+type PublicConfig = { archiveEnabled: boolean; uploadsEnabled: boolean; uploadRelayEnabled: boolean; contactEmail: string | null };
 type Panel = "submit" | "admin" | null;
 
 function dateLabel(value: string) {
@@ -26,7 +27,7 @@ export default function ArchiveApp({ initialPanel = null }: { initialPanel?: Pan
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [config, setConfig] = useState<PublicConfig>({ archiveEnabled: false, uploadsEnabled: false, contactEmail: null });
+  const [config, setConfig] = useState<PublicConfig>({ archiveEnabled: false, uploadsEnabled: false, uploadRelayEnabled: false, contactEmail: null });
 
   const fetchVideos = useCallback(async () => {
     const response = await fetch("/api/videos", { cache: "no-store" });
@@ -81,19 +82,35 @@ export default function ArchiveApp({ initialPanel = null }: { initialPanel?: Pan
 
       <main id="top">
         <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-kicker"><span className="live-dot" /> A community-built record</div>
-          <h1 id="hero-title">When a video disappears, <em>the record shouldn’t.</em></h1>
-          <p className="hero-copy">A public index of videos people say are difficult to access. Every contribution is reviewed before it appears here.</p>
-          <div className="hero-bottom">
-            <p className="hero-note">We preserve links and context, not certainty. A listing is a community submission, not proof that a platform or government removed it.</p>
-            <button className="hero-cta" onClick={() => setPanel("submit")}>Add a video <span aria-hidden="true">↗</span></button>
+          <div className="hero-copy-block">
+            <div className="hero-kicker"><span className="live-dot" /> A community-built record</div>
+            <h1 id="hero-title">Keep the record.<br /><em>Share the context.</em></h1>
+            <p className="hero-copy">A public index for videos that are difficult to access. Community submissions are reviewed before they become part of the archive.</p>
+            <div className="hero-actions">
+              <button className="hero-cta" onClick={() => setPanel("submit")}>Contribute a video <span aria-hidden="true">↗</span></button>
+              <a className="hero-secondary" href="#about">How this archive works <span aria-hidden="true">↓</span></a>
+            </div>
           </div>
+          <aside className="hero-aside" aria-label="Archive principles">
+            <div className="aside-index">FIELD NOTE / 001</div>
+            <div className="orbit-mark" aria-hidden="true"><span>RC</span></div>
+            <p>Independent records<br />are stronger together.</p>
+            <div className="aside-rule" />
+            <span className="aside-caption">Community maintained · Human reviewed</span>
+          </aside>
+        </section>
+
+        <section className="principles" id="about" aria-label="How the archive works">
+          <div><span className="principle-num">01</span><strong>Contribute</strong><p>Add a video and useful context.</p></div>
+          <div><span className="principle-num">02</span><strong>Review</strong><p>Submissions are checked before listing.</p></div>
+          <div><span className="principle-num">03</span><strong>Preserve</strong><p>Approved records stay browsable here.</p></div>
+          <p className="principles-note">A listing documents a community submission; it does not establish why a video became difficult to access.</p>
         </section>
 
         <section className="section-wrap" id="archive" aria-labelledby="archive-title">
           <div className="section-heading">
-            <div><div className="eyebrow">01 / The public index</div><h2 id="archive-title">Recently reviewed</h2></div>
-            <div className="feed-meta">{videos.length.toLocaleString()} {videos.length === 1 ? "record" : "records"}</div>
+            <div><div className="eyebrow">THE PUBLIC INDEX <span>—</span> 01</div><h2 id="archive-title">Recently reviewed</h2></div>
+            <div className="feed-meta"><span className="feed-count">{videos.length.toLocaleString()}</span><span>{videos.length === 1 ? "record" : "records"} in the index</span></div>
           </div>
           <div className="feed-tools">
             <label className="sr-only" htmlFor="archive-search">Search the archive</label>
@@ -129,7 +146,7 @@ function VideoCard({ video }: { video: VideoRecord }) {
   return (
     <article className="video-card">
       <div className="video-frame">
-        <video controls preload="none" playsInline src={video.media_url} aria-label={`Video: ${video.title}`} />
+        <video controls preload="none" playsInline poster={cloudinaryPoster(video.media_url)} src={video.media_url} aria-label={`Video: ${video.title}`} />
         <span className="video-tag">Reviewed entry</span>
       </div>
       <div className="card-body">
@@ -178,18 +195,30 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
       const signature = await signResponse.json();
       if (!signResponse.ok) throw new Error(signature.error ?? "Upload setup failed.");
 
-      const upload = new FormData();
-      upload.append("file", file);
-      upload.append("api_key", signature.apiKey);
-      upload.append("timestamp", String(signature.timestamp));
-      upload.append("public_id", signature.publicId);
-      upload.append("upload_preset", signature.uploadPreset);
-      upload.append("overwrite", "false");
-      upload.append("signature", signature.signature);
       setProgress(16);
-      const cloudResponse = await fetch(signature.uploadUrl, { method: "POST", body: upload });
-      const cloudResult = await cloudResponse.json();
-      if (!cloudResponse.ok) throw new Error(cloudResult.error?.message ?? "The video host rejected the upload.");
+      const chunkSize = 6 * 1024 * 1024;
+      const uploadId = crypto.randomUUID();
+      let cloudResult: Record<string, unknown> | null = null;
+      for (let start = 0; start < file.size; start += chunkSize) {
+        const end = Math.min(start + chunkSize, file.size) - 1;
+        const upload = new FormData();
+        upload.append("file", file.slice(start, end + 1), file.name);
+        upload.append("api_key", signature.apiKey);
+        upload.append("timestamp", String(signature.timestamp));
+        upload.append("public_id", signature.publicId);
+        upload.append("upload_preset", signature.uploadPreset);
+        upload.append("overwrite", "false");
+        upload.append("signature", signature.signature);
+        const cloudResponse = await fetch(signature.uploadUrl, {
+          method: "POST",
+          headers: { "X-Unique-Upload-Id": uploadId, "Content-Range": `bytes ${start}-${end}/${file.size}` },
+          body: upload,
+        });
+        cloudResult = await cloudResponse.json();
+        if (!cloudResponse.ok) throw new Error((cloudResult?.error as { message?: string } | undefined)?.message ?? "The video host rejected the upload.");
+        setProgress(16 + Math.round(((end + 1) / file.size) * 64));
+      }
+      if (!cloudResult) throw new Error("The video upload did not complete.");
       setProgress(83);
 
       const submitResponse = await fetch("/api/videos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
@@ -210,7 +239,7 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
 
   return <Dialog onClose={onClose} eyebrow="02 / Contribute" title="Add to the record">
     {!config.uploadsEnabled ? <div className="notice warning">Submissions are not configured yet. The archive owner must finish the database, video-hosting, and abuse-protection setup before uploads can be accepted.</div> : null}
-    <p className="help-text" style={{ fontSize: 11, margin: "-8px 0 17px" }}>Your submission is anonymous and held for review. The video is uploaded to an external host before review; anyone who obtains its direct URL may be able to view it, so do not upload sensitive or private material.</p>
+    <p className="help-text privacy-note" style={{ fontSize: 11, margin: "-8px 0 17px" }}>{config.uploadRelayEnabled ? "We do not ask for your name or email. Video bytes are sent through our upload relay, so Cloudinary sees the relay's IP address, not yours. The relay operator and this site's host may still see your connection IP; this is not guaranteed anonymity." : "We do not ask for your name or email. Uploads currently go directly from your browser to Cloudinary, which can receive your IP address; your network provider can also see that you visit this site. Do not submit material that could put you or someone else at risk."}</p>
     <form className="form-stack" onSubmit={submit}>
       <label><span className="field-label">Video file *</span><span className="file-field"><input type="file" accept="video/mp4,video/webm,video/quicktime" required disabled={busy || !config.uploadsEnabled} onChange={chooseFile} /><span className="help-text">MP4, WebM, or MOV · up to 100 MB in this uploader</span></span></label>
       <label><span className="field-label">Title *</span><input className="field" name="title" maxLength={120} required placeholder="A short, descriptive title" disabled={busy || !config.uploadsEnabled} /></label>

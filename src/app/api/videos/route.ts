@@ -20,7 +20,11 @@ export async function GET() {
     const rows = await supabaseRequest(
       "video_submissions?select=id,title,description,media_url,source_url,tags,created_at&status=eq.approved&order=created_at.desc&limit=100",
     );
-    return Response.json(rows, { headers: { "Cache-Control": "no-store" } });
+    const publicRows = Array.isArray(rows) ? rows.map((row) => {
+      if (!row || typeof row !== "object" || typeof row.media_url !== "string") return row;
+      return { ...row, media_url: row.media_url.replace("/video/upload/", "/video/upload/q_auto/") };
+    }) : rows;
+    return Response.json(publicRows, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "The archive is not configured or is temporarily unavailable." }, { status: 503 });
   }

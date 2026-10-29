@@ -1,43 +1,55 @@
 # Record Commons — project context
 
-Record Commons is a moderated public archive for community-submitted videos.
-Cloudinary hosts uploads, Supabase stores submission metadata, and only approved
-records appear publicly.
+Record Commons is a moderated public archive. Cloudinary stores uploaded videos,
+Supabase stores submission metadata, and only approved records appear publicly.
 
 ## Current state
 
 - Repository: https://github.com/kabirprokk/Record-Common
-- Production: https://reccommons.vercel.app (free Vercel domain retained)
-- Latest pushed code commit: `4725ded` (`fix: preserve Cloudinary upload public ID`).
-- The user applied the video archive and request rate-limit migrations in
-  Supabase project `abhadrizpkreyxijkscv`.
-- Production rate-limit code is deployed; upload authorization, submissions,
-  and moderator sign-in use Supabase-backed limits. Turnstile is not used.
-- Cloudinary upload proof mismatch was fixed by removing the duplicated
-  `folder` parameter while preserving the full pending path in `public_id`.
-- User confirmed a fresh video submission completed and now appears in review.
-- Moderator access currently uses server-side `ADMIN_PASSWORD` and a signed,
-  HTTP-only session cookie. The password is stored as a sensitive Vercel
-  environment variable, not exposed in public config or client code. Review API
-  routes check the session.
-- The change removes the public footer link to “Review desk” and
-  expose its password-protected dialog at `/review`. No email or Google sign-in
-  is being added. User wants the moderator option hidden and the password kept
-  private.
-- Local verification passed: TypeScript, lint, all 5 tests, production build,
-  and SIGHT checks of `/` and `/review`. SIGHT confirmed the public footer has
-  no review link and `/review` opens the password prompt.
-- The hidden-review change is pushed as `9bd9949`. Vercel deployment for that
-  commit was still `BUILDING` at last check; production homepage still showed
-  the old footer link and `/review` returned 404 then.
+- Production: https://reccommons.vercel.app
+- Current pushed commit before this work: `69ffb94`.
+- Moderator `/review` access is password/session protected and no longer linked
+  from the public footer.
+- User priorities: protect contributor identities as much as practical, improve
+  archive availability, keep the ordinary website, and never remove existing
+  posted videos.
+- Current local changes (not yet committed or deployed): complete homepage and
+  responsive UI redesign; Cloudinary-generated video poster thumbnails;
+  `q_auto` derived playback URLs without database/media mutation; restrictive
+  security headers; clearer upload privacy disclosure; optional chunked upload
+  relay source in `workers/upload-relay/worker.mjs`; and relay URL configuration.
+- Upload relay is not deployed. Without Vercel `UPLOAD_RELAY_URL`, uploads still
+  go directly from visitor browsers to Cloudinary. Once configured, Cloudinary
+  sees the Worker egress IP, but Cloudflare and Vercel can still see visitor
+  network metadata. No Tor-style anonymity is claimed.
+- Independent media/database backups are not configured. Cloudflare account,
+  R2 bucket, deployment access, and restore checks are not available in this
+  workspace.
+- No existing database rows, Cloudinary assets, or migrations were changed.
+
+## Verification completed locally
+
+- `npx tsc --noEmit`, `npm run lint`, `npm test` (13 tests),
+  `node --check workers/upload-relay/worker.mjs`, and `npm run build` passed.
+- SIGHT inspected the redesigned desktop and mobile layouts.
+- Local production response returned HTTP 200 with CSP, `X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy: no-referrer`, and `Permissions-Policy`.
+- Cloudinary demo requests returned HTTP 200 for both a generated JPG poster and
+  a transformed MP4. This verifies Cloudinary URL behavior, not a live archive
+  video.
+- The Vercel deployment and Cloudflare Worker have not yet been updated/deployed.
 
 ## Next steps
 
-1. Confirm Vercel deployment is ready and verify `/review` is live while the
-   public homepage no longer shows the review link.
-2. User can visit `https://reccommons.vercel.app/review` and enter the existing
-   moderator password to review and approve submissions.
+1. Review and push the local redesign and security changes.
+2. Deploy `workers/upload-relay/worker.mjs` with `CLOUDINARY_CLOUD_NAME` and
+   `ALLOWED_ORIGIN=https://reccommons.vercel.app`; set Vercel's
+   `UPLOAD_RELAY_URL` to the Worker `/upload` URL and redeploy.
+3. Configure independent R2/database backups and test a restore before claiming
+   high availability.
+4. Verify production headers, poster rendering, a small upload, a multi-chunk
+   upload, review login, and archive playback after deployment.
 
-Keep server-only keys out of source control and chat. Hiding the link is only a
-UI choice; the password/session checks on the review APIs remain the security
-boundary.
+Do not expose secrets in source or chat. The relay does not need the Cloudinary
+API secret. A privacy relay shifts which provider sees the upload IP; it does
+not make a contributor untraceable.

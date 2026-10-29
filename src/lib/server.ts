@@ -11,6 +11,16 @@ function env(name: string) {
   return process.env[name]?.trim() ?? "";
 }
 
+export function configuredUploadRelayUrl() {
+  const value = env("UPLOAD_RELAY_URL");
+  if (!value) return null;
+  const relayUrl = new URL(value);
+  if (relayUrl.protocol !== "https:" || relayUrl.username || relayUrl.password || relayUrl.pathname !== "/upload" || relayUrl.search || relayUrl.hash) {
+    throw new Error("UPLOAD_RELAY_URL must be an HTTPS /upload endpoint without credentials or query parameters.");
+  }
+  return relayUrl.toString();
+}
+
 export async function publicConfig() {
   const contactEmail = env("NEXT_PUBLIC_CONTACT_EMAIL");
   const archiveEnabled = Boolean(env("NEXT_PUBLIC_SUPABASE_URL") && env("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
@@ -30,7 +40,9 @@ export async function publicConfig() {
       uploadsEnabled = false;
     }
   }
-  return { archiveEnabled, uploadsEnabled, contactEmail: contactEmail || null };
+  let uploadRelayEnabled = false;
+  try { uploadRelayEnabled = Boolean(configuredUploadRelayUrl()); } catch { /* Fail closed in the upload-sign route. */ }
+  return { archiveEnabled, uploadsEnabled, uploadRelayEnabled, contactEmail: contactEmail || null };
 }
 
 export function hasSameOrigin(request: Request) {
