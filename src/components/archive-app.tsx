@@ -20,9 +20,9 @@ function dateLabel(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export default function ArchiveApp() {
+export default function ArchiveApp({ initialPanel = null }: { initialPanel?: Panel }) {
   const [videos, setVideos] = useState<VideoRecord[]>([]);
-  const [panel, setPanel] = useState<Panel>(null);
+  const [panel, setPanel] = useState<Panel>(initialPanel);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -116,7 +116,7 @@ export default function ArchiveApp() {
 
       <footer className="site-footer">
         <span><span className="footer-mark">Record Commons</span> · A community index, not a source of legal advice.</span>
-        <div><button className="nav-link" onClick={() => setPanel("admin")}>Review desk</button><span> &nbsp;·&nbsp; {config.contactEmail ? <>Report a concern: <a href={`mailto:${config.contactEmail}`}>contact the archive team</a></> : "Contact details are not configured."}</span></div>
+        <div>{config.contactEmail ? <>Report a concern: <a href={`mailto:${config.contactEmail}`}>contact the archive team</a></> : "Contact details are not configured."}</div>
       </footer>
 
       {panel === "submit" && <SubmissionDialog config={config} onClose={() => setPanel(null)} onSubmitted={() => { setPanel(null); void refresh(); }} />}
