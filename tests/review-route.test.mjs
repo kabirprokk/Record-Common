@@ -40,6 +40,17 @@ test("uploads fail closed until the privacy relay is configured", async () => {
   assert.match(server, /uploadsEnabled\s*=\s*Boolean\([\s\S]*uploadRelayEnabled/);
 });
 
+test("upload requests apply Cloudinary metadata stripping before storing videos", async () => {
+  const uploadRoute = await readFile(new URL("src/app/api/upload/sign/route.ts", root), "utf8");
+  const app = await readFile(new URL("src/components/archive-app.tsx", root), "utf8");
+
+  assert.match(uploadRoute, /transformation\s*=\s*"fl_force_strip"/);
+  assert.match(uploadRoute, /params\s*=\s*\{[^}]*transformation/s);
+  assert.match(uploadRoute, /transformation,/);
+  assert.match(app, /upload\.append\("transformation",\s*signature\.transformation\)/);
+  assert.match(app, /strips embedded (global )?metadata/i);
+});
+
 test("moderator password remains server-side and API access stays session-gated", async () => {
   const login = await readFile(new URL("src/app/api/admin/login/route.ts", root), "utf8");
   const submissions = await readFile(new URL("src/app/api/admin/submissions/route.ts", root), "utf8");
@@ -78,7 +89,7 @@ test("privacy language does not promise anonymity and explains provider visibili
   assert.doesNotMatch(app, /Your submission is anonymous/);
   assert.match(app, /network provider/i);
   assert.match(app, /Cloudinary/i);
-  assert.match(app, /identifying metadata/i);
+  assert.match(app, /strips embedded global metadata/i);
 });
 
 test("site config applies browser security headers and a restrictive policy", async () => {

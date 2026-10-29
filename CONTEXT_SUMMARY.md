@@ -16,6 +16,10 @@ Supabase stores submission metadata, and only approved records appear publicly.
 - The application now fails closed for new uploads until `UPLOAD_RELAY_URL` is
   configured. The upload-sign route cannot issue direct-to-Cloudinary URLs, and
   public config reports uploads disabled without the relay.
+- New uploads include the signed Cloudinary `fl_force_strip` incoming
+  transformation to remove embedded global metadata (including GPS tags) before
+  the asset is stored. Visual/audio clues and some stream-level fields can
+  remain. Existing uploaded assets have not been changed or removed.
 - The relay source is `workers/upload-relay/worker.mjs`; it is not deployed yet.
   When configured, Cloudinary sees the Worker egress IP, but Cloudflare and
   Vercel can still see visitor network metadata. Uploaded files may also contain
@@ -27,8 +31,8 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 ## Verification completed locally
 
-- Previous verification and deployments remain historical; rerun checks after
-  the current uncommitted privacy-hardening changes.
+- `npx tsc --noEmit`, `npm run lint`, `npm test` (19 tests), and `npm run build`
+  passed after upload-relay enforcement and metadata-stripping changes.
 - SIGHT inspected the redesigned desktop and mobile layouts.
 - Local production response returned HTTP 200 with CSP, `X-Content-Type-Options`,
   `X-Frame-Options`, `Referrer-Policy: no-referrer`, and `Permissions-Policy`.

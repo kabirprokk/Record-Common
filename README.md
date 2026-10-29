@@ -44,6 +44,14 @@ for the site and upload authorization. Video files may also contain identifying
 metadata. This reduces one provider's view of the contributor; it does not
 provide Tor-style anonymity or protect against traffic correlation.
 
+The upload request applies Cloudinary's `fl_force_strip` incoming transformation
+to remove embedded global metadata, including GPS tags, from the stored upload.
+This does not remove identifying content visible or audible in the video, and
+some stream-level fields may remain. Cloudinary processes the uploaded bytes to
+create the stripped asset; this is not a promise that the provider never handles
+the original metadata. This applies to new uploads; existing Cloudinary assets
+are not retroactively rewritten by the application.
+
 The application does not establish that a video was censored, blocked, or
 removed by any particular party. Moderators should check context, rights, and
 privacy before approval, and respond to removal requests.

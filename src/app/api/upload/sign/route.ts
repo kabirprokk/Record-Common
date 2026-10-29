@@ -27,13 +27,15 @@ export async function POST(request: Request) {
     // path-prefixed public_id makes Cloudinary prepend the path again in legacy
     // folder mode, so its returned public_id no longer matches the signed proof.
     const publicId = `open-record/pending/${randomUUID()}`;
-    const params = { overwrite: "false", public_id: publicId, timestamp: String(timestamp), upload_preset: uploadPreset };
+    const transformation = "fl_force_strip";
+    const params = { overwrite: "false", public_id: publicId, timestamp: String(timestamp), upload_preset: uploadPreset, transformation };
     const signature = cloudinarySignature(params, apiSecret);
     return Response.json({
       apiKey,
       timestamp,
       publicId,
       uploadPreset,
+      transformation,
       signature,
       proof: createUploadProof(publicId),
       uploadUrl,
