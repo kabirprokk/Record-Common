@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { rateLimitPolicy, type RateLimitPolicyName } from "@/lib/rate-limit-policy.mjs";
+import { decryptSession, encryptSession } from "@/lib/session-crypto.mjs";
 
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const SESSION_COOKIE = "open-record-review";
@@ -185,15 +186,11 @@ function sessionSecret() {
   return secret;
 }
 
-function signSession(payload: string) {
-  return createHmac("sha256", sessionSecret()).update(payload).digest("base64url");
-}
-
 export async function createAdminSession() {
   const expires = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
   const payload = Buffer.from(JSON.stringify({ exp: expires, role: "moderator" })).toString("base64url");
   const jar = await cookies();
-  jar.set(SESSION_COOKIE, `${payload}.${signSession(payload)}`, {
+  jar.set(SESSION_COOKIE, encryptSession(payload, sessionSecret()), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
@@ -206,11 +203,8 @@ export async function isAdminSessionValid() {
   try {
     const jar = await cookies();
     const value = jar.get(SESSION_COOKIE)?.value ?? "";
-    const [payload, signature, extra] = value.split(".");
-    if (!payload || !signature || extra) return false;
-    const expected = Buffer.from(signSession(payload));
-    const received = Buffer.from(signature);
-    if (expected.length !== received.length || !timingSafeEqual(expected, received)) return false;
+    const payload = decryptSession(value, sessionSecret());
+    if (!payload) return false;
     const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: number; role?: string };
     return decoded.role === "moderator" && typeof decoded.exp === "number" && decoded.exp > Math.floor(Date.now() / 1000);
   } catch {

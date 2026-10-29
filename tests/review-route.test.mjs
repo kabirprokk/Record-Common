@@ -62,9 +62,12 @@ test("upload requests replace the contributor's original filename", async () => 
 test("moderator password remains server-side and API access stays session-gated", async () => {
   const login = await readFile(new URL("src/app/api/admin/login/route.ts", root), "utf8");
   const submissions = await readFile(new URL("src/app/api/admin/submissions/route.ts", root), "utf8");
+  const server = await readFile(new URL("src/lib/server.ts", root), "utf8");
 
   assert.match(login, /verifyAdminPassword\(data\.password\)/);
   assert.match(submissions, /isAdminSessionValid\(\)/);
+  assert.match(server, /encryptSession\(payload, sessionSecret\(\)\)/);
+  assert.match(server, /decryptSession\(value, sessionSecret\(\)\)/);
 });
 
 test("archive uses generated Cloudinary posters and does not autoplay video downloads", async () => {

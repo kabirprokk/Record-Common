@@ -7,7 +7,7 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app
-- Latest pushed commit before current privacy hardening: `be6c390` (`fix: warn contributors before public disclosure`).
+- Latest pushed commit before current privacy hardening: `818784a` (`feat: add contributor privacy review checklist`).
 - Moderator `/review` access is password/session protected and no longer linked
   from the public footer.
 - User priorities: protect contributor identities as much as practical, improve
@@ -30,6 +30,10 @@ Supabase stores submission metadata, and only approved records appear publicly.
 - Submission UI also requires a separate review acknowledgment for potential
   identifying details in faces, voices, screens, documents, and locations. This
   is a user prompt, not automated media scanning.
+- Moderator session cookies now encrypt the role/expiry payload with
+  AES-256-GCM and a key derived from the high-entropy `SESSION_SECRET`. The
+  cookie is opaque and authenticated; deploying this invalidates existing
+  moderator sessions. This does not encrypt database rows or video files.
 - The relay source is `workers/upload-relay/worker.mjs`; it is not deployed yet.
   When configured, Cloudinary sees the Worker egress IP, but Cloudflare and
   Vercel can still see visitor network metadata. Uploaded files may also contain
@@ -41,8 +45,9 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 ## Verification completed locally
 
-- `npx tsc --noEmit`, `npm run lint`, `npm test` (21 tests), and `npm run build`
-  passed after the identifying-detail review acknowledgment.
+- `npx tsc --noEmit`, `npm run lint`, `npm test` (24 tests), and `npm run build`
+  passed after moderator-cookie encryption; `node --check
+  src/lib/session-crypto.mjs` also passed.
 - SIGHT inspected the redesigned desktop and mobile layouts.
 - Local production response returned HTTP 200 with CSP, `X-Content-Type-Options`,
   `X-Frame-Options`, `Referrer-Policy: no-referrer`, and `Permissions-Policy`.

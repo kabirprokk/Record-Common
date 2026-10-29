@@ -118,10 +118,13 @@ npm run build
 
 Open `https://your-site.example/review` and enter `ADMIN_PASSWORD`. The review
 route is intentionally not linked from the public page.
-The signed moderator cookie is HTTP-only, same-site, and expires after eight
-hours. Pending records can be played in the review desk and approved or
-rejected. Only approved records appear in the public index. Rejected uploads
-remain on the Cloudinary account until the moderator deletes them there.
+The moderator cookie is HTTP-only, same-site, and expires after eight hours.
+Its session payload is encrypted with AES-256-GCM using a key derived from
+`SESSION_SECRET`. Changing the cookie format invalidates previously issued
+sessions, so moderators may need to sign in again after deployment. Pending
+records can be played in the review desk and approved or rejected. Only
+approved records appear in the public index. Rejected uploads remain on the
+Cloudinary account until the moderator deletes them there.
 
 ## Data and privacy
 
