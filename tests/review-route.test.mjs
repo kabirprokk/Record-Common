@@ -47,6 +47,13 @@ test("archive uses generated Cloudinary posters and does not autoplay video down
   assert.match(app, /preload="none"/);
 });
 
+test("archive videos switch to contain sizing in fullscreen", async () => {
+  const styles = await readFile(new URL("src/app/globals.css", root), "utf8");
+
+  assert.match(styles, /video:fullscreen[^}]*object-fit:\s*contain/s);
+  assert.match(styles, /video:-webkit-full-screen[^}]*object-fit:\s*contain/s);
+});
+
 test("Cloudinary poster generation supports transformed legacy URLs and rejects other hosts", () => {
   assert.equal(
     cloudinaryPoster("https://res.cloudinary.com/demo/video/upload/q_auto/archive/clip.mp4"),

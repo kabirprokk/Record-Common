@@ -48,6 +48,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .video-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgb(25 38 34 / 8%); }
 .video-frame { aspect-ratio: 16 / 10; position: relative; overflow: hidden; background: #dfe1d8; }
 .video-frame video { display: block; width: 100%; height: 100%; object-fit: cover; background: #202d28; }
+video:fullscreen, video:-webkit-full-screen { width: 100%; height: 100%; max-width: 100vw; max-height: 100vh; object-fit: contain; background: #101714; }
 .video-tag { position: absolute; left: 12px; top: 12px; pointer-events: none; background: var(--paper); color: var(--ink); padding: 6px 8px; font-size: 8px; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; }
 .card-body { padding: 17px 18px 19px; }
 .card-topline { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); font-size: 9px; }
