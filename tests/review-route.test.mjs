@@ -89,9 +89,12 @@ test("public media URLs use Cloudinary derived delivery without rewriting stored
 
 test("homepage focuses on the search bar and video index without promotional hero sections", async () => {
   const app = await readFile(new URL("src/components/archive-app.tsx", root), "utf8");
+  const styles = await readFile(new URL("src/app/globals.css", root), "utf8");
 
   assert.match(app, /id="archive-title">Video index/);
   assert.match(app, /type="search"/);
   assert.doesNotMatch(app, /className="hero"|className="principles"/);
   assert.doesNotMatch(app, /Contact details are not configured/);
+  assert.match(styles, /\.site-shell\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s);
+  assert.match(styles, /\.site-shell\s*>\s*main\s*\{[^}]*flex:\s*1/s);
 });

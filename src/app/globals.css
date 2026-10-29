@@ -22,7 +22,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; }
 ::selection { background: var(--signal); color: white; }
-.site-shell { min-height: 100vh; overflow: hidden; }
+.site-shell { min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.site-shell > main { flex: 1; }
 .masthead { height: 78px; display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(20px, 6.4vw, 96px); border-bottom: 1px solid var(--line); background: var(--paper); }
 .wordmark { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; font-weight: 850; letter-spacing: -.055em; font-size: 18px; }
 .wordmark-mark { width: 31px; height: 31px; flex: 0 0 31px; background: url("/record-commons-mark.svg") center / contain no-repeat; }
