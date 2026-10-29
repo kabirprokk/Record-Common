@@ -51,6 +51,14 @@ test("upload requests apply Cloudinary metadata stripping before storing videos"
   assert.match(app, /strips embedded (global )?metadata/i);
 });
 
+test("upload requests replace the contributor's original filename", async () => {
+  const app = await readFile(new URL("src/components/archive-app.tsx", root), "utf8");
+
+  assert.match(app, /const safeFileName\s*=\s*`record-video\./);
+  assert.match(app, /upload\.append\("file",\s*file\.slice\(start,\s*end\s*\+\s*1\),\s*safeFileName\)/);
+  assert.doesNotMatch(app, /upload\.append\("file",\s*file\.slice\(start,\s*end\s*\+\s*1\),\s*file\.name\)/);
+});
+
 test("moderator password remains server-side and API access stays session-gated", async () => {
   const login = await readFile(new URL("src/app/api/admin/login/route.ts", root), "utf8");
   const submissions = await readFile(new URL("src/app/api/admin/submissions/route.ts", root), "utf8");

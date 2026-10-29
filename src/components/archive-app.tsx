@@ -169,11 +169,13 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
       setProgress(16);
       const chunkSize = 6 * 1024 * 1024;
       const uploadId = crypto.randomUUID();
+      const fileExtension = file.name.toLowerCase().match(/\.(mp4|webm|mov)$/)?.[1] ?? "mp4";
+      const safeFileName = `record-video.${fileExtension}`;
       let cloudResult: Record<string, unknown> | null = null;
       for (let start = 0; start < file.size; start += chunkSize) {
         const end = Math.min(start + chunkSize, file.size) - 1;
         const upload = new FormData();
-        upload.append("file", file.slice(start, end + 1), file.name);
+        upload.append("file", file.slice(start, end + 1), safeFileName);
         upload.append("api_key", signature.apiKey);
         upload.append("timestamp", String(signature.timestamp));
         upload.append("public_id", signature.publicId);
@@ -211,7 +213,7 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
 
   return <Dialog onClose={onClose} eyebrow="02 / Contribute" title="Add to the record">
     {!config.uploadsEnabled ? <div className="notice warning">Submissions are paused until the database, video host, abuse protection, and required upload relay are configured.</div> : null}
-    <p className="help-text privacy-note" style={{ fontSize: 11, margin: "-8px 0 17px" }}>{config.uploadRelayEnabled ? "We do not ask for your name or email. Cloudinary strips embedded global metadata, including GPS tags, during upload. This does not remove identifying details visible or audible in the video, or every stream-level field. Cloudinary receives the relay's IP address, while the relay operator and this site's host may still see your connection IP. This is not guaranteed anonymity." : "Submissions are paused until the upload relay is configured. When enabled, Cloudinary will strip embedded global metadata, including GPS tags, during upload. This cannot remove identifying details visible or audible in the video, and the site host and your network provider may still see that you visit this site. This is not guaranteed anonymity."}</p>
+    <p className="help-text privacy-note" style={{ fontSize: 11, margin: "-8px 0 17px" }}>{config.uploadRelayEnabled ? "We do not ask for your name or email, and replace your original filename with a generic one. Cloudinary strips embedded global metadata, including GPS tags, during upload. This does not remove identifying details visible or audible in the video, or every stream-level field. Cloudinary receives the relay's IP address, while the relay operator and this site's host may still see your connection IP. This is not guaranteed anonymity." : "Submissions are paused until the upload relay is configured. We do not ask for your name or email, and replace your original filename with a generic one. When enabled, Cloudinary will strip embedded global metadata, including GPS tags. This cannot remove identifying details visible or audible in the video, and the site host and your network provider may still see that you visit this site. This is not guaranteed anonymity."}</p>
     <form className="form-stack" onSubmit={submit}>
       <label><span className="field-label">Video file *</span><span className="file-field"><input type="file" accept="video/mp4,video/webm,video/quicktime" required disabled={busy || !config.uploadsEnabled} onChange={chooseFile} /><span className="help-text">MP4, WebM, or MOV · up to 100 MB in this uploader</span></span></label>
       <label><span className="field-label">Title *</span><input className="field" name="title" maxLength={120} required placeholder="A short, descriptive title" disabled={busy || !config.uploadsEnabled} /></label>

@@ -20,6 +20,8 @@ Supabase stores submission metadata, and only approved records appear publicly.
   transformation to remove embedded global metadata (including GPS tags) before
   the asset is stored. Visual/audio clues and some stream-level fields can
   remain. Existing uploaded assets have not been changed or removed.
+- The upload client replaces the contributor's original filename with a
+  generic `record-video` filename (preserving only an allowlisted extension).
 - The relay source is `workers/upload-relay/worker.mjs`; it is not deployed yet.
   When configured, Cloudinary sees the Worker egress IP, but Cloudflare and
   Vercel can still see visitor network metadata. Uploaded files may also contain

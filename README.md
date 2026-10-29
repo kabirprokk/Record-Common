@@ -46,6 +46,8 @@ provide Tor-style anonymity or protect against traffic correlation.
 
 The upload request applies Cloudinary's `fl_force_strip` incoming transformation
 to remove embedded global metadata, including GPS tags, from the stored upload.
+The uploader also replaces the original filename with a generic name before
+sending any chunks to the relay.
 This does not remove identifying content visible or audible in the video, and
 some stream-level fields may remain. Cloudinary processes the uploaded bytes to
 create the stripped asset; this is not a promise that the provider never handles
