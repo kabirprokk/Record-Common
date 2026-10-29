@@ -29,19 +29,32 @@ records appear publicly.
 - The user applied `supabase/migrations/20261029000000_add_request_rate_limits.sql`.
   Production config now reports `uploadsEnabled: true`; `/api/videos` returns
   HTTP 200 and an empty array. The deployment for `191f6bb` is READY.
-- User reports Cloudinary returns “Upload preset not found.” Cloudinary env-var
-  names exist in Vercel Production, but values were not decrypted. Likely
-  configuration mismatch: exact preset name/cloud account/preset setup must be
-  checked in Cloudinary.
+- User now reports Cloudinary `Invalid Signature` for a request using preset
+  `ml_default`; the prior “Upload preset not found” has advanced to signature
+  validation. Cloudinary env-var names exist in Vercel Production, but values
+  were not decrypted. `cloudinarySignature` uses sorted upload parameters plus
+  API secret with SHA-1, matching Cloudinary's documented signing scheme. Most
+  likely issue is a cloud/API key/secret pair from different product
+  environments or an outdated secret in Vercel.
+- User reports changing the Cloudinary secret and redeploying; latest Vercel
+  production deployment is currently `BUILDING`. Production `/api/config` still
+  returns `uploadsEnabled: true` but does not validate Cloudinary credentials.
+- Diagnosed the repeated “Upload authorization expired” rejection: upload
+  signing sent both `folder=open-record/pending` and a `public_id` already
+  containing `open-record/pending/`. Cloudinary can prepend the folder again in
+  legacy folder mode, so its returned `public_id` does not match the proof.
+  Local fix removes the separate `folder` parameter from the signed request and
+  browser upload; only the path-qualified `public_id` remains. Build, lint,
+  TypeScript, and tests pass. The fix has not yet been pushed or deployed.
 
 ## Next steps
 
-1. Resolve the Cloudinary preset mismatch with the user; never decrypt or ask
-   them to post the API secret.
-2. Resume the requested simpler contributor-first redesign after the upload
-   issue is resolved or scoped.
-3. After UI changes, verify submission, moderation, and public listing end to
-   end.
+1. Commit and push the Cloudinary public-ID fix, then verify Vercel production
+   readiness.
+2. Have the user retry with a fresh upload; verify submission, moderation, and
+   public listing end to end.
+3. Resume the requested simpler contributor-first redesign after the upload
+   flow works.
 
 Keep server-only keys out of source control and chat. Anonymous uploads remain
 susceptible to distributed abuse; rate limits do not replace provider usage

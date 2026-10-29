@@ -182,7 +182,6 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
       upload.append("file", file);
       upload.append("api_key", signature.apiKey);
       upload.append("timestamp", String(signature.timestamp));
-      upload.append("folder", signature.folder);
       upload.append("public_id", signature.publicId);
       upload.append("upload_preset", signature.uploadPreset);
       upload.append("overwrite", "false");
