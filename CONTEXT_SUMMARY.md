@@ -1,31 +1,41 @@
-# Project context
+# Record Commons — project context
 
-Record Commons is a moderated video-submission archive. Contributors upload a
-video from the site; Cloudinary hosts the file, Supabase stores its metadata,
-and only moderator-approved entries appear in the public index.
+Record Commons is a moderated public archive for community-submitted videos.
+Cloudinary hosts uploads, Supabase stores submission metadata, and only approved
+records appear publicly.
 
 ## Current state
 
-- Local project: this directory (`open-records-archive`).
-- Vercel project: `reccommons` in team `kabirprokks-projects`.
-- Production URL: https://reccommons.vercel.app
-- Latest production deployment is ready, public, and returns HTTP 200.
-- `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.
-- Production `/api/config` currently reports `archiveEnabled: false` and
-  `uploadsEnabled: false`.
-- Vercel has no environment variables configured for this project.
-- The available Supabase MCP is connected to an unrelated database with a
-  `public.products` table. Do not apply the archive migration to that database.
-- The intended migration is
+- Repository: https://github.com/kabirprokk/Record-Common
+- Production: https://reccommons.vercel.app (free Vercel domain retained)
+- Branch `main` includes logo commit `b91cf5a` (`feat: add Record Commons logo`).
+- New mark: `public/record-commons-mark.svg`, used in the header, footer, and
+  browser icon. The SVG is valid and has been visually checked.
+- Latest code changes pass `npx tsc --noEmit`, `npm run lint`, and
+  `npm run build`.
+- Supabase URL and publishable key are stored as encrypted Vercel env vars for
+  production, preview, and development. No secret key is set.
+- Supabase REST responds, but `public.video_submissions` is not created yet
+  (`PGRST205`). The correct migration is
   `supabase/migrations/20260801000000_create_video_submissions.sql`.
+- Supabase Data API uses opaque `sb_publishable_*` / `sb_secret_*` values as
+  `apikey`; `src/lib/server.ts` now avoids sending these keys as bearer JWTs,
+  while preserving bearer headers for legacy JWT-form keys.
+- Latest deployment for commit `b91cf5a` is `READY`; the production page and
+  `/record-commons-mark.svg` return HTTP 200, and the page includes the new mark.
+- Production `/api/config` reports `archiveEnabled: true`, `uploadsEnabled:
+  false`; `/api/videos` still returns 503 because the archive table is missing.
 
-## External setup required
+## Required user setup
 
-Before production submissions and review can work, configure the correct
-Supabase project, Cloudinary signed video uploads, Cloudflare Turnstile,
-`ADMIN_PASSWORD`, and `SESSION_SECRET`. Set values in Vercel project environment
-settings; do not put secret values in source control or chat. Apply the migration
-only to the new archive Supabase project, then redeploy and exercise submission,
-moderation, and public listing end to end.
+1. In the Supabase dashboard for project `abhadrizpkreyxijkscv`, open SQL
+   Editor and run the migration above. Do not use the unrelated Supabase MCP
+   database connection.
+2. In Vercel project `reccommons`, add server-only `SUPABASE_SERVICE_ROLE_KEY`
+   (Supabase secret key) and the Cloudinary credentials/preset, Turnstile
+   secret/site key, `ADMIN_PASSWORD`, and `SESSION_SECRET`. Never ask for these
+   secret values in chat.
+3. Redeploy if needed, then verify submission → moderator review → public list.
 
-The free Vercel subdomain is intentional for now; no paid domain was purchased.
+The public publishable key is not a secret, but do not put server-only keys in
+client code or Git. Current local `.env.local` and `.vercel/` remain ignored.
