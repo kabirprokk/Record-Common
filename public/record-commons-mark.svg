@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Record Commons mark</title>
+  <rect width="64" height="64" rx="16" fill="#204b3d" />
+  <g fill="none" stroke="#f3f0e8" stroke-linecap="round" stroke-width="3.25">
+    <path d="M23 14h-5a4 4 0 0 0-4 4v5M41 14h5a4 4 0 0 1 4 4v5M50 41v5a4 4 0 0 1-4 4h-5M23 50h-5a4 4 0 0 1-4-4v-5" />
+  </g>
+  <circle cx="32" cy="32" r="10" fill="none" stroke="#d7f36c" stroke-width="3.25" />
+  <path d="M30 27.5v9l7-4.5z" fill="#f3f0e8" />
+</svg>

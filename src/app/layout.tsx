@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Record Commons — A community video archive",
   description:
     "Record Commons is a moderated, searchable community archive of videos and their public context.",
+  icons: { icon: "/record-commons-mark.svg" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

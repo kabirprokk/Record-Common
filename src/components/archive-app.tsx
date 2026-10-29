@@ -72,7 +72,7 @@ export default function ArchiveApp() {
     <div className="site-shell">
       <header className="masthead">
         <a className="wordmark" href="#top" aria-label="Record Commons home">
-          <span className="wordmark-mark" aria-hidden="true">◉</span> RECORD COMMONS
+          <span className="wordmark-mark" aria-hidden="true" /> RECORD COMMONS
         </a>
         <nav className="nav-items" aria-label="Main navigation">
           <a className="nav-link" href="#archive">The archive</a>

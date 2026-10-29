@@ -70,15 +70,19 @@ export function supabaseConfig(requireServiceRole = false) {
 export async function supabaseRequest(path: string, options: RequestInit = {}, privileged = false) {
   const { url, anonKey, serviceKey } = supabaseConfig(privileged);
   const key = privileged ? serviceKey : anonKey;
+  const headers = new Headers(options.headers);
+  headers.set("apikey", key);
+  headers.set("Content-Type", "application/json");
+  // Legacy Supabase keys are JWTs and can be used for both headers. New
+  // sb_publishable_* / sb_secret_* keys are opaque API keys: keep them in
+  // apikey, and don't send them as a bearer token.
+  if (key.startsWith("eyJ")) {
+    headers.set("Authorization", `Bearer ${key}`);
+  }
   const response = await fetch(`${url}/rest/v1/${path}`, {
     ...options,
     cache: "no-store",
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
+    headers,
   });
   const text = await response.text();
   let body: unknown = null;
