@@ -20,21 +20,22 @@ records appear publicly.
   HTTP-only session cookie. The password is stored as a sensitive Vercel
   environment variable, not exposed in public config or client code. Review API
   routes check the session.
-- Current uncommitted change: remove the public footer link to “Review desk” and
+- The change removes the public footer link to “Review desk” and
   expose its password-protected dialog at `/review`. No email or Google sign-in
   is being added. User wants the moderator option hidden and the password kept
   private.
 - Local verification passed: TypeScript, lint, all 5 tests, production build,
   and SIGHT checks of `/` and `/review`. SIGHT confirmed the public footer has
-  no review link and `/review` opens the password prompt. Changes are not yet
-  committed or deployed.
+  no review link and `/review` opens the password prompt.
+- The hidden-review change is pushed as `9bd9949`. Vercel deployment for that
+  commit was still `BUILDING` at last check; production homepage still showed
+  the old footer link and `/review` returned 404 then.
 
 ## Next steps
 
-1. Commit and push the hidden-review-route change.
-2. Wait for Vercel deployment, then verify `/review` is live and the public
-   homepage no longer shows the review link.
-3. User can visit `https://reccommons.vercel.app/review` and enter the existing
+1. Confirm Vercel deployment is ready and verify `/review` is live while the
+   public homepage no longer shows the review link.
+2. User can visit `https://reccommons.vercel.app/review` and enter the existing
    moderator password to review and approve submissions.
 
 Keep server-only keys out of source control and chat. Hiding the link is only a
