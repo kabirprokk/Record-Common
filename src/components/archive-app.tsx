@@ -10,15 +10,11 @@ type VideoRecord = {
   media_url: string;
   source_url: string | null;
   tags: string[];
-  created_at: string;
+  archive_year: number | null;
 };
 
 type PublicConfig = { archiveEnabled: boolean; uploadsEnabled: boolean; uploadRelayEnabled: boolean; contactEmail: string | null };
 type Panel = "submit" | null;
-
-function dateLabel(value: string) {
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
-}
 
 export default function ArchiveApp() {
   const [videos, setVideos] = useState<VideoRecord[]>([]);
@@ -121,7 +117,7 @@ function VideoCard({ video }: { video: VideoRecord }) {
         <span className="video-tag">Reviewed entry</span>
       </div>
       <div className="card-body">
-        <div className="card-topline"><span>RECORD / {video.id.slice(0, 6).toUpperCase()}</span><time dateTime={video.created_at}>{dateLabel(video.created_at)}</time></div>
+        <div className="card-topline"><span>RECORD / {video.id.slice(0, 6).toUpperCase()}</span><span>ADDED / {video.archive_year ?? "YEAR UNKNOWN"}</span></div>
         <h3>{video.title}</h3>
         <p>{video.description}</p>
         <div className="card-footer">{video.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div>

@@ -116,6 +116,16 @@ test("public media URLs use Cloudinary derived delivery without rewriting stored
   assert.doesNotMatch(api, /method:\s*"PATCH"|method:\s*"DELETE"/);
 });
 
+test("public archive exposes a coarse archive year instead of the exact submission timestamp", async () => {
+  const api = await readFile(new URL("src/app/api/videos/route.ts", root), "utf8");
+  const app = await readFile(new URL("src/components/archive-app.tsx", root), "utf8");
+
+  assert.match(api, /archive_year:/);
+  assert.doesNotMatch(api, /return\s*\{\s*\.\.\.row/);
+  assert.match(app, /archive_year/);
+  assert.doesNotMatch(app, /video\.created_at/);
+});
+
 test("homepage focuses on the search bar and video index without promotional hero sections", async () => {
   const app = await readFile(new URL("src/components/archive-app.tsx", root), "utf8");
   const styles = await readFile(new URL("src/app/globals.css", root), "utf8");

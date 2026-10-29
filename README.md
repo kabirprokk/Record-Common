@@ -129,6 +129,8 @@ The archive does not ask contributors for names, email addresses, or accounts.
 Cloudinary and the application host may process network and upload metadata
 under their own privacy policies. Rate-limit identifiers are HMAC-hashed with
 `SESSION_SECRET`; raw IP addresses are not stored in the rate-limit table.
+The public archive API returns only the year an entry was added, not its exact
+submission timestamp, to reduce timing-based correlation.
 
 Independent media and database backups are not configured by this repository.
 Cloudinary and Supabase remain separate primary providers, but provider outages

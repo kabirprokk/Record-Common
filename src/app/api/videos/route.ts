@@ -20,10 +20,25 @@ export async function GET() {
     const rows = await supabaseRequest(
       "video_submissions?select=id,title,description,media_url,source_url,tags,created_at&status=eq.approved&order=created_at.desc&limit=100",
     );
-    const publicRows = Array.isArray(rows) ? rows.map((row) => {
-      if (!row || typeof row !== "object" || typeof row.media_url !== "string") return row;
-      return { ...row, media_url: row.media_url.replace("/video/upload/", "/video/upload/q_auto/") };
-    }) : rows;
+    const publicRows = Array.isArray(rows) ? rows.flatMap((value) => {
+      if (!value || typeof value !== "object") return [];
+      const row = value as Record<string, unknown>;
+      if (
+        typeof row.id !== "string" || typeof row.title !== "string" ||
+        typeof row.description !== "string" || typeof row.media_url !== "string" ||
+        typeof row.created_at !== "string"
+      ) return [];
+      const createdAt = new Date(row.created_at);
+      return [{
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        media_url: row.media_url.replace("/video/upload/", "/video/upload/q_auto/"),
+        source_url: typeof row.source_url === "string" ? row.source_url : null,
+        tags: Array.isArray(row.tags) ? row.tags : [],
+        archive_year: Number.isNaN(createdAt.getTime()) ? null : createdAt.getUTCFullYear(),
+      }];
+    }) : [];
     return Response.json(publicRows, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "The archive is not configured or is temporarily unavailable." }, { status: 503 });
