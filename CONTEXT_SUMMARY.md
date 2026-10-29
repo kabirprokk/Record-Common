@@ -7,13 +7,13 @@ Supabase stores submission metadata, and only approved records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app
-- Current pushed commit before this work: `69ffb94`.
+- Latest pushed code commit: `23a445b` (`feat: redesign archive and add privacy relay`).
 - Moderator `/review` access is password/session protected and no longer linked
   from the public footer.
 - User priorities: protect contributor identities as much as practical, improve
   archive availability, keep the ordinary website, and never remove existing
   posted videos.
-- Current local changes (not yet committed or deployed): complete homepage and
+- Commit `23a445b` contains the complete homepage and
   responsive UI redesign; Cloudinary-generated video poster thumbnails;
   `q_auto` derived playback URLs without database/media mutation; restrictive
   security headers; clearer upload privacy disclosure; optional chunked upload
@@ -37,11 +37,16 @@ Supabase stores submission metadata, and only approved records appear publicly.
 - Cloudinary demo requests returned HTTP 200 for both a generated JPG poster and
   a transformed MP4. This verifies Cloudinary URL behavior, not a live archive
   video.
-- The Vercel deployment and Cloudflare Worker have not yet been updated/deployed.
+- Vercel deployment for `23a445b` was `BUILDING` at last check. The current
+  production home had not yet updated. `/review` returned HTTP 200. Production
+  config has uploads enabled; the previous deployment does not expose relay
+  status, so direct Cloudinary upload is still active until the new code deploys
+  and `UPLOAD_RELAY_URL` is set.
 
 ## Next steps
 
-1. Review and push the local redesign and security changes.
+1. Confirm Vercel deployment `23a445b` is ready, then verify the new UI,
+   thumbnails, and security headers in production.
 2. Deploy `workers/upload-relay/worker.mjs` with `CLOUDINARY_CLOUD_NAME` and
    `ALLOWED_ORIGIN=https://reccommons.vercel.app`; set Vercel's
    `UPLOAD_RELAY_URL` to the Worker `/upload` URL and redeploy.
