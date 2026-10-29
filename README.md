@@ -12,7 +12,8 @@ index until the archive moderator approves them.
   topics.
 - Browser-to-Cloudinary upload, so video bytes do not pass through the app
   server.
-- Turnstile verification before upload authorization.
+- Supabase-backed rate limits for upload authorization, submissions, and
+  moderator sign-in.
 - A moderator password and signed, HTTP-only session cookie.
 - A private review queue with approve and reject actions.
 - Supabase row-level security that limits public reads to approved records;
@@ -43,7 +44,8 @@ The upload and review flows remain disabled until all required settings are
 present. Copy `.env.example` to `.env.local` and fill in the values below.
 
 1. Create a Supabase project. Apply
-   `supabase/migrations/20260801000000_create_video_submissions.sql` using the
+   `supabase/migrations/20260801000000_create_video_submissions.sql` and
+   `supabase/migrations/20261029000000_add_request_rate_limits.sql` using the
    Supabase SQL editor or the Supabase CLI.
 2. Copy the project URL, publishable/anon key, and server-only `service_role`
    key into the matching environment variables. Keep the service-role key on
@@ -55,16 +57,18 @@ present. Copy `.env.example` to `.env.local` and fill in the values below.
    size to the smaller of 100 MB or your account's supported maximum. The app
    signs the preset and upload parameters on the server and sends the file
    directly from the browser to Cloudinary.
-4. Create a Cloudflare Turnstile widget for the site domain and set both the
-   public site key and server secret key. The same verified challenge authorizes
-   one upload. The resulting proof expires after one hour and is tied to the
-   server-generated asset ID.
-5. Set a unique `ADMIN_PASSWORD` and a cryptographically random
+4. Set a unique `ADMIN_PASSWORD` and a cryptographically random
    `SESSION_SECRET` of at least 32 characters. The moderator password is not a
    contributor account; contributors never need to sign in.
-6. Set `NEXT_PUBLIC_CONTACT_EMAIL` to a monitored address for rights, removal,
-   and safety requests.
-7. Configure these environment variables in the hosting platform, then deploy.
+5. Set `NEXT_PUBLIC_CONTACT_EMAIL` to a monitored address for rights, removal,
+    and safety requests.
+6. Configure these environment variables in the hosting platform, then deploy.
+
+The server enforces these per-address limits: five upload authorizations per
+15 minutes, ten per day, five completed-submission requests per hour, and five
+moderator sign-in attempts per 15 minutes. These limits deter repeated requests
+from one network address, but do not stop coordinated traffic from many
+addresses or replace provider-level usage controls.
 
 Do not commit `.env.local` or paste secrets into browser-visible settings.
 
@@ -80,6 +84,7 @@ Open `http://localhost:3000`. Run the checks before deployment:
 ```bash
 npx tsc --noEmit
 npm run lint
+npm test
 npm run build
 ```
 
@@ -95,11 +100,10 @@ remain on the Cloudinary account until the moderator deletes them there.
 
 The archive does not ask contributors for names, email addresses, or accounts.
 Cloudinary and the application host may process network and upload metadata
-under their own privacy policies. Turnstile may process request data to verify
-visitors. The starter does not record submitter IP addresses in the database.
+under their own privacy policies. Rate-limit identifiers are HMAC-hashed with
+`SESSION_SECRET`; raw IP addresses are not stored in the rate-limit table.
 
-Anonymous uploads can still be abused. Turnstile is required for upload
-authorization and moderator sign-in, but it is not a complete abuse-prevention
-or content-moderation system. Review submissions before publication and monitor
-provider usage. Add a distributed rate limiter and a clear takedown process
-before promoting the site broadly.
+Anonymous uploads can still be abused, including by attackers using many
+different network addresses. Supabase-backed limits reduce repeated requests
+from one address but do not replace Cloudinary usage alerts, moderator review, or
+a clear takedown process.

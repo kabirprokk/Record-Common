@@ -1,7 +1,6 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import Turnstile from "@/components/turnstile";
 
 type VideoRecord = {
   id: string;
@@ -14,7 +13,7 @@ type VideoRecord = {
 };
 
 type PendingRecord = VideoRecord & { status: string; public_id: string };
-type PublicConfig = { archiveEnabled: boolean; uploadsEnabled: boolean; turnstileSiteKey: string | null; contactEmail: string | null };
+type PublicConfig = { archiveEnabled: boolean; uploadsEnabled: boolean; contactEmail: string | null };
 type Panel = "submit" | "admin" | null;
 
 function dateLabel(value: string) {
@@ -27,7 +26,7 @@ export default function ArchiveApp() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [config, setConfig] = useState<PublicConfig>({ archiveEnabled: false, uploadsEnabled: false, turnstileSiteKey: null, contactEmail: null });
+  const [config, setConfig] = useState<PublicConfig>({ archiveEnabled: false, uploadsEnabled: false, contactEmail: null });
 
   const fetchVideos = useCallback(async () => {
     const response = await fetch("/api/videos", { cache: "no-store" });
@@ -121,7 +120,7 @@ export default function ArchiveApp() {
       </footer>
 
       {panel === "submit" && <SubmissionDialog config={config} onClose={() => setPanel(null)} onSubmitted={() => { setPanel(null); void refresh(); }} />}
-      {panel === "admin" && <AdminDialog config={config} onClose={() => setPanel(null)} onChanged={() => void refresh()} />}
+      {panel === "admin" && <AdminDialog onClose={() => setPanel(null)} onChanged={() => void refresh()} />}
     </div>
   );
 }
@@ -146,7 +145,6 @@ function VideoCard({ video }: { video: VideoRecord }) {
 
 function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConfig; onClose: () => void; onSubmitted: () => void }) {
   const [file, setFile] = useState<File | null>(null);
-  const [token, setToken] = useState("");
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -176,7 +174,7 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
     const trap = String(form.get("website") ?? "");
     setBusy(true); setProgress(4); setMessage(""); setError(false);
     try {
-      const signResponse = await fetch("/api/upload/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, website: trap }) });
+      const signResponse = await fetch("/api/upload/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ website: trap }) });
       const signature = await signResponse.json();
       if (!signResponse.ok) throw new Error(signature.error ?? "Upload setup failed.");
 
@@ -212,7 +210,7 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
   }
 
   return <Dialog onClose={onClose} eyebrow="02 / Contribute" title="Add to the record">
-    {!config.uploadsEnabled ? <div className="notice warning">Submissions are not configured yet. The archive owner must add Supabase, Cloudinary, and Turnstile settings before uploads can be accepted.</div> : null}
+    {!config.uploadsEnabled ? <div className="notice warning">Submissions are not configured yet. The archive owner must finish the database, video-hosting, and abuse-protection setup before uploads can be accepted.</div> : null}
     <p className="help-text" style={{ fontSize: 11, margin: "-8px 0 17px" }}>Your submission is anonymous and held for review. The video is uploaded to an external host before review; anyone who obtains its direct URL may be able to view it, so do not upload sensitive or private material.</p>
     <form className="form-stack" onSubmit={submit}>
       <label><span className="field-label">Video file *</span><span className="file-field"><input type="file" accept="video/mp4,video/webm,video/quicktime" required disabled={busy || !config.uploadsEnabled} onChange={chooseFile} /><span className="help-text">MP4, WebM, or MOV · up to 100 MB in this uploader</span></span></label>
@@ -221,18 +219,16 @@ function SubmissionDialog({ config, onClose, onSubmitted }: { config: PublicConf
       <label><span className="field-label">Original public link</span><input className="field" name="sourceUrl" type="url" maxLength={500} placeholder="https://…" disabled={busy || !config.uploadsEnabled} /></label>
       <label><span className="field-label">Topics</span><input className="field" name="tags" maxLength={160} placeholder="election, public record, region (comma-separated)" disabled={busy || !config.uploadsEnabled} /></label>
       <label className="checkbox-row"><input type="checkbox" required disabled={busy || !config.uploadsEnabled} /><span>I have the right to submit this video, and I understand the archive may reject or remove it after review.</span></label>
-      {config.turnstileSiteKey && <Turnstile siteKey={config.turnstileSiteKey} onToken={setToken} />}
       <label className="sr-only" aria-hidden="true">Leave blank<input tabIndex={-1} autoComplete="off" name="website" /></label>
       {busy && <div className="progress-track" aria-label={`Upload ${progress}% complete`}><div className="progress-fill" style={{ width: `${progress}%` }} /></div>}
       {message && <div className={`notice${error ? " error" : ""}`} role="status">{message}</div>}
-      <button className="primary-button" type="submit" disabled={busy || !config.uploadsEnabled || !file || !token}>{busy ? "UPLOADING & SENDING FOR REVIEW…" : "SUBMIT FOR REVIEW ↗"}</button>
+      <button className="primary-button" type="submit" disabled={busy || !config.uploadsEnabled || !file}>{busy ? "UPLOADING & SENDING FOR REVIEW…" : "SUBMIT FOR REVIEW ↗"}</button>
     </form>
   </Dialog>;
 }
 
-function AdminDialog({ config, onClose, onChanged }: { config: PublicConfig; onClose: () => void; onChanged: () => void }) {
+function AdminDialog({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState("");
   const [items, setItems] = useState<PendingRecord[]>([]);
   const [loggedIn, setLoggedIn] = useState(false);
   const [message, setMessage] = useState("");
@@ -242,7 +238,7 @@ function AdminDialog({ config, onClose, onChanged }: { config: PublicConfig; onC
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setMessage("");
     try {
-      const response = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password, token }) });
+      const response = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not sign in.");
       setLoggedIn(true); setError(false); setPassword(""); await loadPending();
@@ -273,16 +269,14 @@ function AdminDialog({ config, onClose, onChanged }: { config: PublicConfig; onC
     await fetch("/api/admin/submissions", { method: "DELETE" });
     setLoggedIn(false);
     setItems([]);
-    setToken("");
   }
 
   return <Dialog onClose={onClose} eyebrow="Moderator access" title="Review desk">
     {!loggedIn ? <form className="form-stack" onSubmit={login}>
       <p className="help-text" style={{ fontSize: 11, margin: "-8px 0 8px" }}>This area is for the archive owner. Contributor submissions do not require an account.</p>
       <label><span className="field-label">Moderator password</span><input className="field" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
-      {config.turnstileSiteKey && <Turnstile siteKey={config.turnstileSiteKey} onToken={setToken} />}
       {message && <div className={`notice${error ? " error" : ""}`} role="alert">{message}</div>}
-      <button className="primary-button" disabled={busy || !token}>{busy ? "CHECKING…" : "OPEN REVIEW DESK"}</button>
+      <button className="primary-button" disabled={busy}>{busy ? "CHECKING…" : "OPEN REVIEW DESK"}</button>
     </form> : <div className="form-stack">
       <p className="help-text" style={{ fontSize: 11, margin: "-8px 0 8px" }}>New submissions stay out of the public archive until you approve them.</p>
       <button className="secondary-button" onClick={() => void logout()} style={{ justifySelf: "end" }}>Lock review desk</button>

@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { rateLimitPolicy, type RateLimitPolicyName } from "@/lib/rate-limit-policy.mjs";
 
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const SESSION_COOKIE = "open-record-review";
@@ -10,18 +11,26 @@ function env(name: string) {
   return process.env[name]?.trim() ?? "";
 }
 
-export function publicConfig() {
-  const turnstileSiteKey = env("NEXT_PUBLIC_TURNSTILE_SITE_KEY");
+export async function publicConfig() {
   const contactEmail = env("NEXT_PUBLIC_CONTACT_EMAIL");
   const archiveEnabled = Boolean(env("NEXT_PUBLIC_SUPABASE_URL") && env("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
-  const uploadsEnabled = Boolean(
+  let uploadsEnabled = Boolean(
     archiveEnabled &&
     env("SUPABASE_SERVICE_ROLE_KEY") && env("CLOUDINARY_CLOUD_NAME") &&
     env("CLOUDINARY_API_KEY") && env("CLOUDINARY_API_SECRET") && env("CLOUDINARY_UPLOAD_PRESET") &&
-    env("TURNSTILE_SECRET_KEY") && turnstileSiteKey && env("ADMIN_PASSWORD") &&
-    env("SESSION_SECRET"),
+    env("ADMIN_PASSWORD") && env("SESSION_SECRET"),
   );
-  return { archiveEnabled, uploadsEnabled, turnstileSiteKey: turnstileSiteKey || null, contactEmail: contactEmail || null };
+  if (uploadsEnabled) {
+    try {
+      uploadsEnabled = await supabaseRequest("rpc/request_rate_limit_ready", {
+        method: "POST",
+        body: "{}",
+      }, true) === true;
+    } catch {
+      uploadsEnabled = false;
+    }
+  }
+  return { archiveEnabled, uploadsEnabled, contactEmail: contactEmail || null };
 }
 
 export function hasSameOrigin(request: Request) {
@@ -29,28 +38,6 @@ export function hasSameOrigin(request: Request) {
   if (!origin) return false;
   try {
     return new URL(origin).origin === new URL(request.url).origin;
-  } catch {
-    return false;
-  }
-}
-
-export async function verifyHuman(token: unknown, request: Request) {
-  const secret = env("TURNSTILE_SECRET_KEY");
-  if (!secret || typeof token !== "string" || token.length < 10 || token.length > 2048) return false;
-  const body = new URLSearchParams({ secret, response: token });
-  const ip = request.headers.get("cf-connecting-ip");
-  if (ip) body.set("remoteip", ip);
-  try {
-    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-      cache: "no-store",
-      signal: AbortSignal.timeout(5000),
-    });
-    const result = (await response.json()) as { success?: boolean; hostname?: string };
-    const expectedHost = new URL(request.url).hostname;
-    return response.ok && result.success === true && (!result.hostname || result.hostname === expectedHost);
   } catch {
     return false;
   }
@@ -65,6 +52,31 @@ export function supabaseConfig(requireServiceRole = false) {
   try { parsed = new URL(url); } catch { throw new Error("Supabase URL is invalid."); }
   if (parsed.protocol !== "https:" && parsed.hostname !== "localhost") throw new Error("Supabase URL must use HTTPS.");
   return { url, anonKey, serviceKey };
+}
+
+export async function consumeRateLimit(name: RateLimitPolicyName, request: Request) {
+  const policy = rateLimitPolicy(name);
+  const forwarded = request.headers.get("x-vercel-forwarded-for");
+  const address = forwarded?.split(",", 1)[0]?.trim() ||
+    (process.env.NODE_ENV === "production" ? "" : "local-development");
+  if (!address) throw new Error("Could not determine the request source.");
+
+  const subject = createHmac("sha256", sessionSecret()).update(`${name}:${address}`).digest("hex");
+  const result = await supabaseRequest("rpc/consume_request_rate_limit", {
+    method: "POST",
+    body: JSON.stringify({
+      p_bucket_hash: subject,
+      p_limit: policy.limit,
+      p_window_seconds: policy.windowSeconds,
+    }),
+  }, true);
+  if (!Array.isArray(result) || result.length !== 1 || typeof result[0]?.allowed !== "boolean") {
+    throw new Error("Rate-limit service returned an invalid response.");
+  }
+  return {
+    allowed: result[0].allowed,
+    retryAfterSeconds: Number(result[0].retry_after_seconds) || policy.windowSeconds,
+  };
 }
 
 export async function supabaseRequest(path: string, options: RequestInit = {}, privileged = false) {

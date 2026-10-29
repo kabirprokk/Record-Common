@@ -1,4 +1,4 @@
-import { cloudinaryConfig, hasSameOrigin, supabaseRequest, verifyCloudinaryAsset, verifyUploadProof } from "@/lib/server";
+import { cloudinaryConfig, consumeRateLimit, hasSameOrigin, supabaseRequest, verifyCloudinaryAsset, verifyUploadProof } from "@/lib/server";
 
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const TITLE_MAX = 120;
@@ -34,6 +34,16 @@ export async function POST(request: Request) {
   catch { return Response.json({ error: "Invalid request." }, { status: 400 }); }
 
   if (typeof data.website === "string" && data.website.length > 0) return Response.json({ ok: true });
+
+  try {
+    const limit = await consumeRateLimit("submission", request);
+    if (!limit.allowed) return Response.json(
+      { error: "Submission limit reached. Try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
+  } catch {
+    return Response.json({ error: "Submission protection is temporarily unavailable." }, { status: 503 });
+  }
 
   const title = typeof data.title === "string" ? data.title.trim() : "";
   const description = typeof data.description === "string" ? data.description.trim() : "";

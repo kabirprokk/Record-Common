@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { cloudinaryConfig, cloudinarySignature, createUploadProof, hasSameOrigin, verifyHuman } from "@/lib/server";
+import { cloudinaryConfig, cloudinarySignature, consumeRateLimit, createUploadProof, hasSameOrigin } from "@/lib/server";
 
 export async function POST(request: Request) {
   if (!hasSameOrigin(request)) return Response.json({ error: "Request origin rejected." }, { status: 403 });
@@ -9,9 +9,15 @@ export async function POST(request: Request) {
   catch { return Response.json({ error: "Invalid request." }, { status: 400 }); }
 
   if (typeof data.website === "string" && data.website.length > 0) return Response.json({ ok: true });
-  if (!await verifyHuman(data.token, request)) return Response.json({ error: "Complete the spam-prevention check and try again." }, { status: 400 });
 
   try {
+    for (const policy of ["upload-sign-burst", "upload-sign-daily"] as const) {
+      const limit = await consumeRateLimit(policy, request);
+      if (!limit.allowed) return Response.json(
+        { error: "Upload limit reached. Try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+      );
+    }
     const { cloudName, apiKey, apiSecret, uploadPreset } = cloudinaryConfig();
     const timestamp = Math.floor(Date.now() / 1000);
     const folder = "open-record/pending";
@@ -29,6 +35,6 @@ export async function POST(request: Request) {
       uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch {
-    return Response.json({ error: "Video upload is not configured." }, { status: 503 });
+    return Response.json({ error: "Upload protection or video hosting is not configured." }, { status: 503 });
   }
 }

@@ -8,32 +8,34 @@ records appear publicly.
 
 - Repository: https://github.com/kabirprokk/Record-Common
 - Production: https://reccommons.vercel.app (free Vercel domain retained)
-- Branch `main` includes logo commit `b91cf5a` (`feat: add Record Commons logo`).
-- New mark: `public/record-commons-mark.svg`, used in the header, footer, and
-  browser icon. The SVG is valid and has been visually checked.
-- Latest code changes pass `npx tsc --noEmit`, `npm run lint`, and
-  `npm run build`.
-- Supabase URL and publishable key are stored as encrypted Vercel env vars for
-  production, preview, and development. No secret key is set.
-- The user applied `supabase/migrations/20260801000000_create_video_submissions.sql`.
-  Verified Supabase REST returns HTTP 200 and `[]` for
-  `video_submissions?select=id&limit=0` (table exists and is empty).
-- Supabase Data API uses opaque `sb_publishable_*` / `sb_secret_*` values as
-  `apikey`; `src/lib/server.ts` now avoids sending these keys as bearer JWTs,
-  while preserving bearer headers for legacy JWT-form keys.
-- Latest deployment for commit `b91cf5a` is `READY`; the production page and
-  `/record-commons-mark.svg` return HTTP 200, and the page includes the new mark.
-- Production `/api/config` reports `archiveEnabled: true`, `uploadsEnabled:
-  false`; `/api/videos` now returns HTTP 200 with `[]` (table exists, no
-  approved records yet).
+- Latest published code commit: `fa2bca7`.
+- Logo is live at `/record-commons-mark.svg` and used in the header, footer, and
+  browser icon.
+- The user applied
+  `supabase/migrations/20260801000000_create_video_submissions.sql`; verified
+  that the table exists and production `/api/videos` returns HTTP 200 with `[]`.
+- Vercel `reccommons` Production now contains the Supabase server key, Cloudinary
+  settings, `ADMIN_PASSWORD`, and `SESSION_SECRET` as sensitive variables. Their
+  values were not retrieved or printed. Turnstile variables are absent by user
+  preference.
+- Production still runs the prior code until the no-Turnstile change is pushed.
+- Work in progress: remove Turnstile; add Supabase-backed atomic rate limiting
+  for upload signing (5 per 15 minutes, 10 per day), submissions (5 per hour),
+  and moderator sign-in (5 per 15 minutes). Rate-limit subjects use HMAC hashes
+  of Vercel-forwarded IP values; raw IPs are not stored. Enforcement fails
+  closed if Supabase rate-limit RPCs are unavailable.
+- New migration pending: `supabase/migrations/20261029000000_add_request_rate_limits.sql`.
+  Production config will keep uploads disabled until this migration is applied.
 
-## Required user setup
+## Next steps
 
-1. In Vercel project `reccommons`, add server-only `SUPABASE_SERVICE_ROLE_KEY`
-   (Supabase secret key) and the Cloudinary credentials/preset, Turnstile
-   secret/site key, `ADMIN_PASSWORD`, and `SESSION_SECRET`. Never ask for these
-   secret values in chat.
-2. Redeploy if needed, then verify submission → moderator review → public list.
+1. Finish and verify the implementation with TypeScript, lint, tests, and build.
+2. Have the user apply the new rate-limit migration in the SQL Editor for
+   Supabase project `abhadrizpkreyxijkscv`; do not use the unrelated MCP database.
+3. Push the code, wait for Vercel production deployment, and verify the rate
+   limit readiness check, upload signing, submission, moderator review, and
+   public listing.
 
-The public publishable key is not a secret, but do not put server-only keys in
-client code or Git. Current local `.env.local` and `.vercel/` remain ignored.
+Keep server-only keys out of source control and chat. Anonymous uploads remain
+susceptible to distributed abuse; rate limits do not replace provider usage
+alerts or moderation.
